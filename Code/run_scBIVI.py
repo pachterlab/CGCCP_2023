@@ -45,6 +45,8 @@ logdir       = args.logdir
 percent_keep = args.percent_keep
 cluster_method_split = args.cluster_method
 
+# datadir='out/pbmc_10k_v3/data/preprocessed.h5ad'
+
 if logdir == 'default':
     logdir = pathlib.Path(datadir).parent
     if logdir.name == 'data':
@@ -92,7 +94,19 @@ n_layers = 3
 setups = ['scBIVI-10-combined',
           'scVI-10-combined',
           "scVI-10-spliced",
-          'scVI-10-unspliced']
+          'scVI-10-unspliced',
+          'scBIVIuncorr-10-combined',
+          'scBIVImixed-10-combined']
+# setups = ['scBIVImixed-10-combined']
+setups = ['scBIVI-10-combined',
+          'scBIVItemp_T=1_Trate=0.01-10-combined',
+          'scBIVItemp_T=1_Trate=0.0001-10-combined',
+          'scBIVItemp_T=1_Trate=0.000001-10-combined',
+          'scBIVItemp_T=1_Trate=0.00000001-10-combined',
+          'scBIVItemp_T=1_Trate=0-10-combined',
+          'scBIVItemp_T=0.01_Trate=0-10-combined',
+          'scBIVItemp_T=0.0001_Trate=0-10-combined',
+          'scBIVItemp_T=0.000001_Trate=0-10-combined',]
 
 cluster_methods = adata.obsm['Cluster'].columns.to_list()
 metrics_list = ['recon_error','latent embedding','compute'] + cluster_methods
@@ -102,10 +116,15 @@ logdir_train = os.path.join(logdir,'train')
 os.makedirs(logdir_train, exist_ok=True)
 
 for k, (train_index, test_index) in enumerate(skf_splits):
-
+    #
   for setup in setups:
-
+      #
+    print(setup)
     method,n_latent,datas = setup.split("-")
+    method_split = method.split('_')
+    method = method_split[0]
+    additional_kwargs = {s.split('=')[0]:float(s.split('=')[1]) for s in method_split[1:]}
+
     n_latent = int(n_latent)
 
     ## Split the data
@@ -135,6 +154,7 @@ for k, (train_index, test_index) in enumerate(skf_splits):
                   'log_variational'    :  True,
                   'latent_distribution':  'normal'
                   }
+    model_args.update(additional_kwargs)
 
     ## Create model
     if method == 'LDVAE':
@@ -142,7 +162,17 @@ for k, (train_index, test_index) in enumerate(skf_splits):
     elif method == 'scVI':
         model = scvi.model.SCVI(train_adata,**model_args)
     elif method == "scBIVI":
-        model = scBIVI(train_adata,**model_args)
+        model = scBIVI(train_adata,mode='corr',**model_args)
+    elif method == "scBIVIuncorr":
+        model = scBIVI(train_adata,mode='uncorr',**model_args)
+    elif method == 'scBIVImixed':
+        model = scBIVI(train_adata,mode='mixed',**model_args)
+    elif method == 'scBIVItemp':
+        # model_args['T'] = 1
+        # model_args['Trate'] = 1
+        model = scBIVI(train_adata,mode='mixed',**model_args)
+    elif method == 'scBIVIcustom':
+        model = scBIVI(train_adata,mode='custom',**model_args)
     else:
         raise Exception('Input valid scVI model')
 
@@ -187,7 +217,7 @@ for k, (train_index, test_index) in enumerate(skf_splits):
       if datas == 'combined':
         test_adata_save = test_adata
 
-    ## Validation with cluster accuracy based on labels
+    #### Validation with cluster accuracy based on labels
     ## Iterate through ground truth labels based on different approach
 
     for cluster_method, y in test_adata.obsm['Cluster'].iteritems():
@@ -197,7 +227,39 @@ for k, (train_index, test_index) in enumerate(skf_splits):
         score_dict = calculate_accuracy(X_out,y)
         results_dict[setup][cluster_method].append(score_dict)
 
-    ## Correlations
+    #### Get predicted distribution
+    if 'scBIVI' in method:
+
+        params = model.get_likelihood_parameters(test_adata)
+        mu = params['mean']
+        if method == 'scBIVImixed':
+            import torch.nn.functional as F
+            mu,mw = np.split(mu,2,axis=1)
+            mw_tensor = torch.tensor(mw.reshape(-1,int(mw.shape[1]/2),2))
+            mw_softmax = F.softmax(mw_tensor/10e-20,dim=-1)
+
+        mu1,mu2 = np.split(mu,2,axis=1)
+        alpha = params['dispersions']
+
+        if mu1.shape[1] == alpha.shape[1]:
+            stats = {'mu1': mu1, 'mu2' : mu2,
+                     '1/alpha'         : 1/alpha,
+                     'mu2/(mu1*alpha)' : mu2/(mu1*alpha),
+                     'mu2/alpha'       : mu2/alpha
+                     }
+
+            fig,axs = plt.subplots(1,len(stats),
+                                   figsize=(5*len(stats),4),
+                                   squeeze=False)
+
+            for ax, (stat,x) in zip(axs.reshape(-1),stats.items()):
+                ax = sns.histplot(np.log(x.reshape(-1)),kde=False,ax=ax,bins=20)
+                ax.set_title(stat)
+
+            plt.savefig(os.path.join(logdir_train,f"{figname}-hist.pdf"))
+            plt.close()
+
+    #### Correlations
 
     # cg = plot_corr_comparison(X1,X2)
     # figname = f"{setup}-{k}"

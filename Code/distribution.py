@@ -11,10 +11,57 @@ from torch.distributions.utils import (
     logits_to_probs,
 )
 
+def log_nb_positive_bi_custom(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
+                             theta: torch.Tensor, mw: torch.tensor, eps=1e-8, ):
+    """
+    Log likelihood (scalar) of a minibatch according to a bivariate nb model
+    where individual genes use one of the distributions
+    """
+    # Process the model weights with softmax
+    mw = mw.view(-1,int(mw.shape[-1]/2),2)
+    mw = F.softmax(mw/T,dim=-1)
+    mw1,mw2=torch.chunk(mw,2,dim=-1)
+    mw1 = mw1.view(-1,mw1.shape[-2])
+    mw2 = mw2.view(-1,mw2.shape[-2])
+    # res calculation
+    res1 = log_nb_positive_bi(x,
+                              mu1=mu1, mu2=mu2,
+                              theta=theta, eps=eps)
+    res2 = log_nb_positive_bi_uncor(x,
+                                    mu1=mu1, mu2=mu2,
+                                    theta=theta, eps=eps)
+    res = res1 * mw1 + res2 * mw2
+
+    return res
+
+
+def log_nb_positive_bi_mixed(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
+                             theta: torch.Tensor, mw: torch.tensor, eps=1e-8, T=1):
+    """
+    Log likelihood (scalar) of a minibatch according to a bivariate nb model
+    where individual genes use one of the distributions
+    """
+    # Process the model weights with softmax
+    mw = mw.view(-1,int(mw.shape[-1]/2),2)
+    mw = F.softmax(mw/T,dim=-1)
+    mw1,mw2=torch.chunk(mw,2,dim=-1)
+    mw1 = mw1.view(-1,mw1.shape[-2])
+    mw2 = mw2.view(-1,mw2.shape[-2])
+    # res calculation
+    res1 = log_nb_positive_bi(x,
+                              mu1=mu1, mu2=mu2,
+                              theta=theta, eps=eps)
+    res2 = log_nb_positive_bi_uncor(x,
+                                    mu1=mu1, mu2=mu2,
+                                    theta=theta, eps=eps)
+    res = res1 * mw1 + res2 * mw2
+
+    return res
+
 def log_nb_positive_bi(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
                        theta: torch.Tensor, eps=1e-8):
     """
-    Log likelihood (scalar) of a minibatch according to a nb model.
+    Log likelihood (scalar) of a minibatch according to a bivariate nb model.
     Parameters
     ----------
     x
@@ -30,6 +77,7 @@ def log_nb_positive_bi(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
     We parametrize the bernoulli using the logits, hence the softplus functions appearing.
     """
 
+    # Divide the original data x into spliced (x) and unspliced (y)
     x,y = torch.chunk(x,2,dim=-1)
 
     if theta.ndimension() == 1:
@@ -50,6 +98,52 @@ def log_nb_positive_bi(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
     )
 
     return res
+
+def log_nb_positive_bi_uncor(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
+                             theta: torch.Tensor, eps=1e-8):
+    """
+    Log likelihood (scalar) of a minibatch according to a bivariate nb model
+    where spliced and unspliced are predicted separately.
+    Parameters
+    ----------
+    x
+        data
+    mu1,mu2
+        mean of the negative binomial (has to be positive support) (shape: minibatch x vars/2)
+    theta
+        params (has to be positive support) (shape: minibatch x vars)
+    eps
+        numerical stability constant
+    Notes
+    -----
+    We parametrize the bernoulli using the logits, hence the softplus functions appearing.
+    """
+
+    # Divide the original data x into spliced (x) and unspliced (y)
+    x,y = torch.chunk(x,2,dim=-1)
+
+    if theta.ndimension() == 1:
+        theta = theta.view(
+            1, theta1.size(0)
+        )  # In this case, we reshape theta for broadcasting
+
+    # In contrast to log_nb_positive_bi,
+    log_theta_mu1_eps = torch.log(theta + mu1 + eps)
+    log_theta_mu2_eps = torch.log(theta + mu2 + eps)
+
+    res = (
+        theta * (2* torch.log(theta + eps) - log_theta_mu1_eps - log_theta_mu2_eps)
+        + x * (torch.log(mu1 + eps) - log_theta_mu1_eps)
+        + torch.lgamma(x + theta)
+        - 2*torch.lgamma(theta)
+        - torch.lgamma(x + 1)
+        + y * (torch.log(mu2 + eps) - log_theta_mu2_eps)
+        + torch.lgamma(y + theta)
+        - torch.lgamma(y + 1)
+    )
+
+    return res
+
 
 class BivariateNegativeBinomial(Distribution):
     r"""
@@ -74,6 +168,10 @@ class BivariateNegativeBinomial(Distribution):
         Inverse dispersion.
     validate_args
         Raise ValueError if arguments do not match constraints
+    use_corr
+        Boolean to select either correlated or uncorrelated nb distribution
+    model_weight
+
     """
 
     arg_constraints = {
@@ -90,7 +188,17 @@ class BivariateNegativeBinomial(Distribution):
         mu: Optional[torch.Tensor] = None,
         theta: Optional[torch.Tensor] = None,
         validate_args: bool = False,
+        use_corr: bool = True,
+        use_mixed: bool = False,
+        T: float = 1,
+        custom_dist = None,
+        **kwargs,
     ):
+
+
+
+        super().__init__(validate_args=validate_args)
+
         self._eps = 1e-8
         if (mu is None) == (total_count is None):
             raise ValueError(
@@ -106,14 +214,28 @@ class BivariateNegativeBinomial(Distribution):
             total_count, logits = broadcast_all(total_count, logits)
             mu, theta = _convert_counts_logits_to_mean_disp(total_count, logits)
         else:
-            mu1,mu2 = torch.chunk(mu,2,dim=-1) # Split the theta into two parts
-            mu1, mu2, theta = broadcast_all(mu1, mu2, theta)
+            if use_mixed:
+                # Split the theta into three parts, spliced, unspliced, and
+                # model weights (mw) for each gene
+                mu,mw=torch.chunk(mu,2,dim=-1)
+                mu1,mu2=torch.chunk(mu,2,dim=-1)
+                mu1, mu2, theta = broadcast_all(mu1, mu2, theta)
+            else:
+                # Split the mu into two parts, mu1=spliced , mu2=unspliced
+                mu1,mu2 = torch.chunk(mu,2,dim=-1)
+                mu1, mu2, theta = broadcast_all(mu1, mu2, theta)
+                mw=None
 
         #### Modified for bivariate
         self.mu, self.mu2 = mu1, mu2
         self.theta = theta
+        self.mw = mw
+        self.T=T
 
-        super().__init__(validate_args=validate_args)
+        self.use_corr  = use_corr
+        self.use_mixed = use_mixed
+        self.use_custom = custom_dist is not None
+        self.custom_dist = custom_dist
 
     @property
     def mean(self):
@@ -148,7 +270,29 @@ class BivariateNegativeBinomial(Distribution):
                     UserWarning,
                 )
 
-        return log_nb_positive_bi(value, mu1=self.mu, mu2=self.mu2, theta=self.theta, eps=self._eps)
+        if self.use_mixed:
+            calculate_log_nb = log_nb_positive_bi_mixed
+            log_nb = calculate_log_nb(value,
+                                      mu1=self.mu, mu2=self.mu2,
+                                      theta=self.theta, eps=self._eps,
+                                      mw=self.mw, T=self.T)
+        elif self.use_custom:
+            calculate_log_nb = log_nb_positive_bi_custom
+            log_nb = calculate_log_nb(value,
+                                      mu1=self.mu, mu2=self.mu2,
+                                      theta=self.theta, eps=self._eps,
+                                      mw=self.mw, T=self.T,
+                                      custom_dist = self.custom_dist)
+        else:
+            if self.use_corr:
+                calculate_log_nb = log_nb_positive_bi
+            else:
+                calculate_log_nb = log_nb_positive_bi_uncor
+            log_nb = calculate_log_nb(value,
+                                      mu1=self.mu, mu2=self.mu2,
+                                      theta=self.theta, eps=self._eps)
+
+        return log_nb
 
     def _gamma(self):
         return _gamma(self.theta, self.mu)

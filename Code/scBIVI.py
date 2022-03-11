@@ -44,6 +44,7 @@ class scBIVI(SCVI):
             latent_distribution=latent_distribution,
             **model_kwargs,
         )
+
         self._model_summary_string = (
             "SCVI Model with the following params: \nn_hidden: {}, n_latent: {}, n_layers: {}, dropout_rate: "
             "{}, dispersion: {}, gene_likelihood: {}, latent_distribution: {}"
