@@ -108,7 +108,6 @@ class BIVAE(VAE):
             n_output = n_input
 
         #### Fix: modify decoderSCVI class instead
-        print('decoder')
         self.decoder = DecoderSCVI(
             n_latent,
             n_output,
@@ -132,7 +131,7 @@ class BIVAE(VAE):
                                            theta=px_r,
                                            use_corr=self.corr,
                                            use_mixed=self.mixed,
-                                           custom=self.custom_dist,
+                                           custom_dist=self.custom_dist,
                                            T=self.T,
                                            **kwargs).log_prob(x).sum(dim=-1)
             )

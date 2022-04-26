@@ -12,25 +12,15 @@ from torch.distributions.utils import (
 )
 
 def log_nb_positive_bi_custom(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
-                             theta: torch.Tensor, mw: torch.tensor, eps=1e-8, ):
+                             theta: torch.Tensor, mw: torch.tensor, eps=1e-8,
+                             custom_dist=None, **kwargs):
     """
     Log likelihood (scalar) of a minibatch according to a bivariate nb model
     where individual genes use one of the distributions
     """
-    # Process the model weights with softmax
-    mw = mw.view(-1,int(mw.shape[-1]/2),2)
-    mw = F.softmax(mw/T,dim=-1)
-    mw1,mw2=torch.chunk(mw,2,dim=-1)
-    mw1 = mw1.view(-1,mw1.shape[-2])
-    mw2 = mw2.view(-1,mw2.shape[-2])
-    # res calculation
-    res1 = log_nb_positive_bi(x,
-                              mu1=mu1, mu2=mu2,
-                              theta=theta, eps=eps)
-    res2 = log_nb_positive_bi_uncor(x,
-                                    mu1=mu1, mu2=mu2,
-                                    theta=theta, eps=eps)
-    res = res1 * mw1 + res2 * mw2
+
+    assert custom_dist is not None, "Input a custom_dist"
+    res = custom_dist(x=x, mu1=mu1, mu2=mu2, theta=theta, mw=mw, eps=eps)
 
     return res
 
@@ -146,33 +136,32 @@ def log_nb_positive_bi_uncor(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tens
 
 
 class BivariateNegativeBinomial(Distribution):
-    r"""
-    Negative binomial distribution.
-    One of the following parameterizations must be provided:
-    (1), (`total_count`, `probs`) where `total_count` is the number of failures until
-    the experiment is stopped and `probs` the success probability. (2), (`mu`, `theta`)
-    parameterization, which is the one used by scvi-tools. These parameters respectively
-    control the mean and inverse dispersion of the distribution.
-    In the (`mu`, `theta`) parameterization, samples from the negative binomial are generated as follows:
-    1. :math:`w \sim \textrm{Gamma}(\underbrace{\theta}_{\text{shape}}, \underbrace{\theta/\mu}_{\text{rate}})`
-    2. :math:`x \sim \textrm{Poisson}(w)`
-    Parameters
-    ----------
-    total_count
-        Number of failures until the experiment is stopped.
-    probs
-        The success probability.
-    mu
-        Mean of the distribution.
-    theta
-        Inverse dispersion.
-    validate_args
-        Raise ValueError if arguments do not match constraints
-    use_corr
-        Boolean to select either correlated or uncorrelated nb distribution
-    model_weight
-
-    """
+    # """
+    # Negative binomial distribution.
+    # One of the following parameterizations must be provided:
+    # (1), (`total_count`, `probs`) where `total_count` is the number of failures until
+    # the experiment is stopped and `probs` the success probability. (2), (`mu`, `theta`)
+    # parameterization, which is the one used by scvi-tools. These parameters respectively
+    # control the mean and inverse dispersion of the distribution.
+    # In the (`mu`, `theta`) parameterization, samples from the negative binomial are generated as follows:
+    # 1. :math:`w \sim \textrm{Gamma}(\underbrace{\theta}_{\text{shape}}, \underbrace{\theta/\mu}_{\text{rate}})`
+    # 2. :math:`x \sim \textrm{Poisson}(w)`
+    # Parameters
+    # ----------
+    # total_count
+    #     Number of failures until the experiment is stopped.
+    # probs
+    #     The success probability.
+    # mu
+    #     Mean of the distribution.
+    # theta
+    #     Inverse dispersion.
+    # validate_args
+    #     Raise ValueError if arguments do not match constraints
+    # use_corr
+    #     Boolean to select either correlated or uncorrelated nb distribution
+    # model_weight
+    # """
 
     arg_constraints = {
         "mu": constraints.greater_than_eq(0),
@@ -195,9 +184,8 @@ class BivariateNegativeBinomial(Distribution):
         **kwargs,
     ):
 
-
-
         super().__init__(validate_args=validate_args)
+
 
         self._eps = 1e-8
         if (mu is None) == (total_count is None):
@@ -270,19 +258,19 @@ class BivariateNegativeBinomial(Distribution):
                     UserWarning,
                 )
 
-        if self.use_mixed:
-            calculate_log_nb = log_nb_positive_bi_mixed
-            log_nb = calculate_log_nb(value,
-                                      mu1=self.mu, mu2=self.mu2,
-                                      theta=self.theta, eps=self._eps,
-                                      mw=self.mw, T=self.T)
-        elif self.use_custom:
+        if self.use_custom:
             calculate_log_nb = log_nb_positive_bi_custom
             log_nb = calculate_log_nb(value,
                                       mu1=self.mu, mu2=self.mu2,
                                       theta=self.theta, eps=self._eps,
                                       mw=self.mw, T=self.T,
                                       custom_dist = self.custom_dist)
+        elif self.use_mixed:
+            calculate_log_nb = log_nb_positive_bi_mixed
+            log_nb = calculate_log_nb(value,
+                                      mu1=self.mu, mu2=self.mu2,
+                                      theta=self.theta, eps=self._eps,
+                                      mw=self.mw, T=self.T)
         else:
             if self.use_corr:
                 calculate_log_nb = log_nb_positive_bi
