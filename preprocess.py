@@ -44,8 +44,8 @@ os.makedirs(logdir,exist_ok=True)
 # logdir='out/pbmc_10k_v3/data'
 # loomfile='data/loom_10x_kb/pbmc_10k_v3.loom'
 
-# logdir='out/scbivi_gRNA/data'
-# loomfile='data/scbivi_gRNA.loom'
+logdir='out/scbivi_gRNA/data'
+loomfile='data/scbivi_gRNA.loom'
 
 # ==============================================================================
 #                                 Load data
