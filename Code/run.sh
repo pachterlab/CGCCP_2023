@@ -14,9 +14,9 @@ do
   python preprocess.py --logdir "${logdir}" \
                        --loomfile "${loomfile}"
 
-python run_scBIVI.py --datadir "${logdir}/preprocessed.h5ad" \
-                     --percent_keep "1" \
-                     --cluster_method 'RNA_leiden'
+  python run_scBIVI.py --datadir "${logdir}/preprocessed.h5ad" \
+                       --percent_keep "1" \
+                       --cluster_method 'RNA_leiden'
 
 done
 

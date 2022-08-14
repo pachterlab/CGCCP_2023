@@ -13,13 +13,19 @@ from torch.distributions import kl_divergence as kl
 
 from scvi._compat import Literal
 
+# from scvi.core.distributions import (
+#     NegativeBinomial,
+#     ZeroInflatedNegativeBinomial,
+# )
+# from ._base import DecoderSCVI, Encoder, LinearDecoderSCVI
+# from .utils import one_hot
 
 from scvi.core.modules._base import DecoderSCVI, Encoder
 from scvi.core.modules.utils import one_hot
 
 ####
 from scvi.core.modules import VAE
-from distribution_2 import BivariateNegativeBinomial
+from distribution import BivariateNegativeBinomial
 
 torch.backends.cudnn.benchmark = True
 
@@ -53,19 +59,15 @@ class BIVAE(VAE):
         self.Tmin = Tmin
         self.custom_dist = custom_dist
 
-        if mode == 'mixed':
+        if mode == 'mixed' or mode == 'custom':
             self.mixed=True
             self.corr=True
         else:
             self.mixed=False
-            self.corr=True
-            if mode == 'uncorr':
+            if mode == 'corr':
+                self.corr=True
+            elif mode == 'uncorr':
                 self.corr=False
-
-            # elif mode == 'uncorr':
-            #     self.corr=False
-            # elif self.mode == "custom":
-            #     self.corr = True
 
         #### switch to n_input/2 (shared between each spliced/unspliced gene)
         n_input = kwargs['n_input']
@@ -141,3 +143,54 @@ class BIVAE(VAE):
         else:
             raise ValueError("Input valid gene_likelihood ['nb']")
         return reconst_loss
+
+
+    # @auto_move_data
+    # def generative(
+    #     self,
+    #     z,
+    #     library,
+    #     batch_index,
+    #     cont_covs=None,
+    #     cat_covs=None,
+    #     size_factor=None,
+    #     y=None,
+    #     transform_batch=None,
+    # ):
+    #     """Runs the generative model."""
+    #     # TODO: refactor forward function to not rely on y
+    #     decoder_input = z if cont_covs is None else torch.cat([z, cont_covs], dim=-1)
+    #     if cat_covs is not None:
+    #         categorical_input = torch.split(cat_covs, 1, dim=1)
+    #     else:
+    #         categorical_input = tuple()
+    #
+    #     if transform_batch is not None:
+    #         batch_index = torch.ones_like(batch_index) * transform_batch
+    #
+    #     if not self.use_size_factor_key:
+    #         size_factor = library
+    #
+    #     #### Modifty the decoder output to output m, weight for 2 distribuutions
+    #     px_scale, px_r, px_rate, px_dropout = self.decoder(
+    #         self.dispersion,
+    #         decoder_input,
+    #         size_factor,
+    #         batch_index,
+    #         *categorical_input,
+    #         y,
+    #     )
+    #     if self.dispersion == "gene-label":
+    #         px_r = F.linear(
+    #             one_hot(y, self.n_labels), self.px_r
+    #         )  # px_r gets transposed - last dimension is nb genes
+    #     elif self.dispersion == "gene-batch":
+    #         px_r = F.linear(one_hot(batch_index, self.n_batch), self.px_r)
+    #     elif self.dispersion == "gene":
+    #         px_r = self.px_r
+    #
+    #     px_r = torch.exp(px_r)
+    #
+    #     return dict(
+    #         px_scale=px_scale, px_r=px_r, px_rate=px_rate, px_dropout=px_dropout
+    #     )

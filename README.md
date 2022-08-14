@@ -1,0 +1,2 @@
+# GCCCP_2021
+This repository contains the scripts and notebooks for the preprint "Mechanistic multi-modal data integration with scVI". Although autoencoder models can be treated as purely phenomenological and descriptive, without any explicit claims about the process physics, it is possible to exploit *implicit* physics encoded in the mathematical formulation to encode physics. By interpreting the scVI model as a description of a particular extrinsic noise model, we capture unspliced mRNA distributions.
