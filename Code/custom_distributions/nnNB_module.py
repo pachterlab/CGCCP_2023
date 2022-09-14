@@ -77,7 +77,7 @@ def get_NORM(npdf,quantiles='cheb'):
         norm = torch.tensor(norm)
         return norm
 
-NORM = get_NORM(10).to(torch.device(device))
+NORM = get_NORM(10)
 
 
 def generate_grid(logmean_cond,logstd_cond,NORM):
