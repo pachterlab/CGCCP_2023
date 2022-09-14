@@ -10,8 +10,6 @@ from scipy import stats
 import sys
 sys.path.append('../')
 
-print('reloaded')
-
 
 device = 'cuda'
 
@@ -84,6 +82,7 @@ def generate_grid(logmean_cond,logstd_cond,NORM):
     ''' Generate grid of kernel means based on the log mean and log standard devation of a conditional distribution.
     Generates the grid of quantile values in NORM, scaled by conditional moments.
     '''
+    print('loaded correctly')
     logmean_cond = torch.reshape(logmean_cond,(-1,1))
     logstd_cond = torch.reshape(logstd_cond,(-1,1))
     print(logmean_cond.get_device())
