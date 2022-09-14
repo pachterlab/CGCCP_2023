@@ -11,9 +11,6 @@ import sys
 sys.path.append('../')
 
 
-
-
-
 class MLP(nn.Module):
 
     def __init__(self, input_dim, npdf, h1_dim, h2_dim):
@@ -47,9 +44,9 @@ class MLP(nn.Module):
         w_pred = self.softmax(w_un)
 
         return w_pred,hyp
-        
 
-model_path = './models/best_model_MODEL'       
+
+model_path = '../custom_distributions/models/best_model_MODEL.zip'       
 npdf = 10
 
 # load in model
@@ -57,7 +54,6 @@ model = MLP(7,10,256,256)
 model.load_state_dict(torch.load(model_path))
 model.eval() 
 model.to(torch.device('cuda'))
-
 
 
 def get_NORM(npdf,quantiles='cheb'):
@@ -78,7 +74,6 @@ def get_NORM(npdf,quantiles='cheb'):
         return norm
 
 NORM = get_NORM(10).to(torch.device('cuda'))
-
 
 
 def generate_grid(logmean_cond,logstd_cond,NORM):
@@ -135,8 +130,6 @@ def get_ypred_at_RT(p,w,hyp,n,m,NORM,eps=1e-8):
     EPS = 1e-40
     Y[Y<EPS]=EPS
     return Y
-
-
 
 
 def log_prob_nnNB(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
