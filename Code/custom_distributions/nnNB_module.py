@@ -82,8 +82,9 @@ def generate_grid(logmean_cond,logstd_cond,NORM):
     '''
     logmean_cond = torch.reshape(logmean_cond,(-1,1))
     logstd_cond = torch.reshape(logstd_cond,(-1,1))
-    logmean_cond.get_device()
-    NORM.get_device()
+    print(logmean_cond.get_device())
+    print(NORM.get_device())
+    print(logstd_cond.get_device())
     translin = torch.exp(torch.add(logmean_cond,logstd_cond*NORM))
     
     return translin
