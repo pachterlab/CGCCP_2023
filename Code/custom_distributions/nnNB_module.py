@@ -94,7 +94,7 @@ def generate_grid(logmean_cond,logstd_cond,NORM):
     
     return translin
 
-def get_ypred_at_RT(p,w,hyp,n,m,NORM,eps=1e-8):
+def get_ypred_at_RT(p,w,hyp,n,m,NORM=NORM.to(torch.device(device)),eps=1e-8):
     '''Given a parameter vector (tensor) and weights (tensor), and hyperparameter,
     calculates ypred (Y), or approximate probability. Calculates over array of nascent (n) and mature (m) values.
     '''
