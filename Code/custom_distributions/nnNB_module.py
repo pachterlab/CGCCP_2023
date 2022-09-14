@@ -10,6 +10,10 @@ from scipy import stats
 import sys
 sys.path.append('../')
 
+print('reloaded')
+
+
+device = 'cuda'
 
 class MLP(nn.Module):
 
@@ -53,7 +57,7 @@ npdf = 10
 model = MLP(7,10,256,256)
 model.load_state_dict(torch.load(model_path))
 model.eval() 
-model.to(torch.device('cuda'))
+model.to(torch.device(device))
 
 
 def get_NORM(npdf,quantiles='cheb'):
@@ -73,7 +77,7 @@ def get_NORM(npdf,quantiles='cheb'):
         norm = torch.tensor(norm)
         return norm
 
-NORM = get_NORM(10).to(torch.device('cuda'))
+NORM = get_NORM(10).to(torch.device(device))
 
 
 def generate_grid(logmean_cond,logstd_cond,NORM):
@@ -101,7 +105,7 @@ def get_ypred_at_RT(p,w,hyp,n,m,NORM,eps=1e-8):
     hyp = hyp*5+1
         
     grid = generate_grid(logmean_cond,logstd_cond,NORM)
-    s = torch.zeros((len(n),10)).to(torch.device('cuda'))
+    s = torch.zeros((len(n),10)).to(torch.device(device))
     s[:,:-1] = torch.diff(grid,axis=1)
     s *= hyp
     s[:,-1] = torch.sqrt(grid[:,-1])
@@ -111,7 +115,7 @@ def get_ypred_at_RT(p,w,hyp,n,m,NORM,eps=1e-8):
     r = grid**2/((v-grid)+eps)
     p_nb = 1-grid/v
     
-    Y = torch.zeros((len(n),1)).to(torch.device('cuda'))
+    Y = torch.zeros((len(n),1)).to(torch.device(device))
 
     # grid_i = grid[:,i].reshape((-1,1))
 
