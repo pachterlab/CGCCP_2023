@@ -55,7 +55,7 @@ npdf = 10
 model = MLP(7,10,256,256)
 model.load_state_dict(torch.load(model_path))
 model.eval() 
-model.to(torch.device(device))
+#model.to(torch.device(device))
 
 
 def get_NORM(npdf,quantiles='cheb'):
