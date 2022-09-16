@@ -20,7 +20,7 @@ def log_nb_positive_bi_custom(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Ten
     """
 
     assert custom_dist is not None, "Input a custom_dist"
-    res = custom_dist(x=x, mu1=mu1, mu2=mu2, theta=theta, mw=mw, eps=eps)
+    res = custom_dist(x=x, mu1=mu1, mu2=mu2, theta=theta,eps=eps)
 
     return res
 
