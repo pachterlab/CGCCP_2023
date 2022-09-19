@@ -57,6 +57,7 @@ model.load_state_dict(torch.load(model_path))
 model.eval() 
 #model.to(torch.device(device))
 
+print('reload baby')
 
 def get_NORM(npdf,quantiles='cheb'):
     '''' Returns quantiles based on the number of kernel functions npdf. 
@@ -78,21 +79,18 @@ def get_NORM(npdf,quantiles='cheb'):
 NORM = get_NORM(10)
 
 
-def generate_grid(logmean_cond,logstd_cond,NORM):
+def generate_grid(logmean_cond,logstd_cond,norm):
     ''' Generate grid of kernel means based on the log mean and log standard devation of a conditional distribution.
     Generates the grid of quantile values in NORM, scaled by conditional moments.
     '''
     
     logmean_cond = torch.reshape(logmean_cond,(-1,1))
     logstd_cond = torch.reshape(logstd_cond,(-1,1))
-    print('logmean device',logmean_cond.get_device())
-    print('logstd device',logstd_cond.get_device())
-    print('NORM device',NORM.get_device())
-    translin = torch.exp(torch.add(logmean_cond,logstd_cond*NORM))
+    translin = torch.exp(torch.add(logmean_cond,logstd_cond*norm))
     
     return translin
 
-def get_ypred_at_RT(p,w,hyp,n,m,NORM=NORM.to(torch.device(device)),eps=1e-8):
+def get_ypred_at_RT(p,w,hyp,n,m,norm,eps=1e-8):
     '''Given a parameter vector (tensor) and weights (tensor), and hyperparameter,
     calculates ypred (Y), or approximate probability. Calculates over array of nascent (n) and mature (m) values.
     '''
@@ -103,7 +101,7 @@ def get_ypred_at_RT(p,w,hyp,n,m,NORM=NORM.to(torch.device(device)),eps=1e-8):
     
     hyp = hyp*5+1
         
-    grid = generate_grid(logmean_cond,logstd_cond,NORM)
+    grid = generate_grid(logmean_cond,logstd_cond,norm)
     s = torch.zeros((len(n),10)).to(torch.device(device))
     s[:,:-1] = torch.diff(grid,axis=1)
     s *= hyp
@@ -139,7 +137,7 @@ def get_ypred_at_RT(p,w,hyp,n,m,NORM=NORM.to(torch.device(device)),eps=1e-8):
 
 
 def log_prob_nnNB(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
-                       theta: torch.Tensor, eps, THETA_IS, **kwargs):
+                       theta: torch.Tensor, eps, THETA_IS, model, norm,  **kwargs):
     ''' Calculates probability for bursty model given our most accurate model.
       -----------------------------------
       x
@@ -219,7 +217,7 @@ def log_prob_nnNB(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
     n = n.reshape(-1,1)
     m = m.reshape(-1,1)
     # get conditional probabilites
-    ypred_cond = get_ypred_at_RT(pv,w_,hyp_,n,m,NORM)
+    ypred_cond = get_ypred_at_RT(pv,w_,hyp_,n,m,norm)
     
     # multiply conditionals P(m|n) by P(n)
     prob_nascent = torch.exp(prob_nascent)

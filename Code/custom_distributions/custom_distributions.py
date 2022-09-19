@@ -108,4 +108,3 @@ def log_prob_poisson(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
     return P
 
 
-log_prob_nnNB = nnNB_module.log_prob_nnNB
