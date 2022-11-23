@@ -137,7 +137,7 @@ def get_ypred_at_RT(p,w,hyp,n,m,norm,eps=1e-8):
 
 
 def log_prob_nnNB(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
-                       theta: torch.Tensor, eps, THETA_IS, **kwargs):
+                       theta: torch.Tensor, THETA_IS, eps, **kwargs):
     ''' Calculates probability for bursty model given our most accurate model.
       -----------------------------------
       x

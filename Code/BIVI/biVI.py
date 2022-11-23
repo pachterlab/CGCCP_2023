@@ -1,8 +1,9 @@
 import logging
 
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Dict, Sequence
 
 from anndata import AnnData
+import torch
 
 from scvi._compat import Literal
 # from scvi.core.data_loaders import ScviDataLoader
@@ -61,3 +62,4 @@ class biVI(SCVI):
             latent_distribution,
         )
         self.init_params_ = self._get_init_params(locals())
+        

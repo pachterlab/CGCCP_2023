@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Main module."""
-from typing import Callable, Iterable, Optional
+from typing import Dict, Iterable, Optional, Sequence, Union
+import anndata
+from anndata import AnnData
 
 import numpy as np
 import torch
@@ -96,6 +98,7 @@ class BIVAE(VAE):
         cat_list = [n_batch] + list([] if n_cats_per_cov is None else n_cats_per_cov)
 
         n_output = n_input
+        print(n_input)
 
         #### modify decoderSCVI class
         self.decoder = DecoderSCVI(
@@ -172,6 +175,8 @@ class BIVAE(VAE):
             *categorical_input,
             y,
         )
+        
+       
         if self.dispersion == "gene-label":
             px_r = F.linear(
                 one_hot(y, self.n_labels), self.px_r
@@ -212,3 +217,84 @@ class BIVAE(VAE):
             pl=pl,
             pz=pz,
         )
+    
+    @torch.inference_mode()
+    def get_likelihood_parameters(
+        self,
+        adata: Optional[AnnData] = None,
+        indices: Optional[Sequence[int]] = None,
+        n_samples: Optional[int] = 1,
+        give_mean: Optional[bool] = False,
+        batch_size: Optional[int] = None,
+    ) -> Dict[str, np.ndarray]:
+        r"""
+        Estimates for the parameters of the likelihood :math:`p(x \mid z)`
+        Parameters
+        ----------
+        adata
+            AnnData object with equivalent structure to initial AnnData. If `None`, defaults to the
+            AnnData object used to initialize the model.
+        indices
+            Indices of cells in adata to use. If `None`, all cells are used.
+        n_samples
+            Number of posterior samples to use for estimation.
+        give_mean
+            Return expected value of parameters or a samples
+        batch_size
+            Minibatch size for data loading into model. Defaults to `scvi.settings.batch_size`.
+        """
+        adata = self._validate_anndata(adata)
+
+        scdl = self._make_data_loader(
+            adata=adata, indices=indices, batch_size=batch_size
+        )
+
+        dropout_list = []
+        mean_list = []
+        dispersion_list = []
+        for tensors in scdl:
+            inference_kwargs = dict(n_samples=n_samples)
+            _, generative_outputs = self.module.forward(
+                tensors=tensors,
+                inference_kwargs=inference_kwargs,
+                compute_loss=False,
+            )
+            print(generate_outputs.keys())
+            px = generative_outputs["px"]
+            
+            px_r = px.theta
+            px_rate = px.mu
+            assert px_rate.size[1] == 2000, f"px_rate size of 2000 expected, got: {px.size[1]}"
+            if self.module.gene_likelihood == "zinb":
+                px_dropout = px.zi_probs
+
+            n_batch = px_rate.size(0) if n_samples == 1 else px_rate.size(1)
+            
+            px_r = px_r.cpu().numpy()
+            if len(px_r.shape) == 1:
+                dispersion_list += [np.repeat(px_r[np.newaxis, :], n_batch, axis=0)]
+            else:
+                dispersion_list += [px_r]
+            mean_list += [px_rate.cpu().numpy()]
+            if self.module.gene_likelihood == "zinb":
+                dropout_list += [px_dropout.cpu().numpy()]
+                dropout = np.concatenate(dropout_list, axis=-2)
+        means = np.concatenate(mean_list, axis=-2)
+        dispersions = np.concatenate(dispersion_list, axis=-2)
+
+        if give_mean and n_samples > 1:
+            if self.module.gene_likelihood == "zinb":
+                dropout = dropout.mean(0)
+            means = means.mean(0)
+            dispersions = dispersions.mean(0)
+
+        return_dict = {}
+        return_dict["mean"] = means
+
+        if self.module.gene_likelihood == "zinb":
+            return_dict["dropout"] = dropout
+            return_dict["dispersions"] = dispersions
+        if self.module.gene_likelihood == "nb":
+            return_dict["dispersions"] = dispersions
+
+        return return_dict

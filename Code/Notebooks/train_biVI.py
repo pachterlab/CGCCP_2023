@@ -1,36 +1,18 @@
-
-# # Train Models on Various Datasets
-
+# # Train scBIVI
+# 
+# This script trains and stores results for different models
+# 
 
 # argument parser
 import argparse
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--name', type=str)
-parser.add_argument('--data_dir', type=str, default = '../data/simulated_data/')
+parser.add_argument('--data_dir', type=str, default = '../../data/simulated_data/')
 args = parser.parse_args()
 
 name = args.name
 data_dir = args.data_dir
-
-# install necessary pacakges
-# %%capture
-# !pip install scanpy -q
-# !pip install scvi-tools==0.8.1 -q
-# !pip install loompy -q
-# !pip install leidenalg -q
-
-
-
-# check GPU availability
-import torch 
-import torch.nn as nn
-import torch.nn.functional as F
-memory_used = torch.cuda.memory_allocated()
-print(torch.cuda.is_available())
-print(torch.cuda.device_count())
-print(torch.cuda.current_device())
-
 
 
 
@@ -39,8 +21,7 @@ import time, gc
 
 # add module paths to sys path
 import sys
-sys.path.insert(0,'../custom_distributions/')
-sys.path.insert(0, '../BIVAE/')
+sys.path.insert(0, '../BIVI/')
 
 # Math
 import numpy as np
@@ -54,28 +35,22 @@ import pickle
 # scvi
 import anndata
 import scvi
+print(scvi.__version__)
 
 
-# In[ ]:
 
+# import biVI scripts
+import biVI
 
-# import scbivi scripts
-import scBIVI
-import nnNB_module
-import custom_distributions
-
-# set the model to cuda
-nnNB_module.model.to(torch.device('cuda'))
-NORM = nnNB_module.NORM.to(torch.device('cuda'))
-
-print('TORCH VERSION',torch.__version__)
+# 
 
 # # Load in data 
 # 
 # 
 # Change data name to test out different simulated datasets with varying number of celltypes. 
 
-print(name)
+
+# ==================================================================================================================
 
 # change to hdf5 file if that is what you store data as
 adata = anndata.read_loom(data_dir+f'{name}.loom')
@@ -88,8 +63,6 @@ adata.obs['Cluster'] = adata.obs['Cell Type']
 adata.var_names_make_unique()
 
 
-
-
 #Set up train/test data splits with 5-fold split
 skf = StratifiedKFold(n_splits=5, random_state=None, shuffle=False)
 skf_splits = skf.split(adata, adata.obs['Cluster'])
@@ -99,18 +72,13 @@ for k, (train_index, test_index) in enumerate(skf_splits):
   pass
 
 
-# In[ ]:
-
 
 print(f'training on {len(train_index)} cells, testing on {len(test_index)} cells')
 
 
-# -----
-# 
-# 
-# # Define training function
+# ==================================================================================================================
 
-# In[ ]:
+# # Define training function
 
 
 # if anything goes wrong in training, this will catch where it happens
@@ -124,7 +92,7 @@ def compare_setups(adata, setups, results_dict, hyperparameters, train_index = t
   ''' 
 
   lr = hyperparameters['lr']
-  n_epochs = hyperparameters['n_epochs']
+  max_epochs = hyperparameters['max_epochs']
   n_hidden = hyperparameters['n_hidden']
   n_layers = hyperparameters['n_layers']
 
@@ -136,23 +104,33 @@ def compare_setups(adata, setups, results_dict, hyperparameters, train_index = t
 
     # test using only spliced or unspliced in vanilla scVI
     if '.S' in method:
-      adata_in = adata[:,adata.var['Spliced']==1].copy()
+      adata_in = adata[:,adata.var['Spliced']==1]
       print('spliced')
     elif '.U' in method:
-      adata_in = adata[:,adata.var['Spliced']==0].copy()
+      adata_in = adata[:,adata.var['Spliced']==0]
       print('unspliced')
     else:
-      adata_in = adata.copy()
+      adata_in = adata
 
     print(adata_in.X.shape)
-    scvi.data.setup_anndata(adata_in, layer="counts")
+    #biVI.biVI.setup_anndata(adata_in,layer="counts")
+    #categorical_covariate_keys=["cell_source", "donor"],
+    #continuous_covariate_keys=["percent_mito", "percent_ribo"])
 
     
     train_adata, test_adata = adata_in[train_index], adata_in[test_index]
     train_adata = train_adata.copy()
+    test_adata = test_adata.copy()
+    if 'scVI' in method:
+        scvi.model.SCVI.setup_anndata(test_adata,layer="counts")
+        scvi.model.SCVI.setup_anndata(train_adata,layer="counts")
+    else:
+        biVI.biVI.setup_anndata(test_adata,layer="counts")
+        biVI.biVI.setup_anndata(train_adata,layer="counts")
+    
 
     ## Set model parameters
-    model_args = {'use_cuda'     : True,
+    model_args = {
                   'n_latent'     : n_latent,
                   'n_layers'     : n_layers,
                   'dispersion'   : 'gene',
@@ -160,58 +138,61 @@ def compare_setups(adata, setups, results_dict, hyperparameters, train_index = t
                   'dropout_rate' :  0.1,
                   'gene_likelihood'    :  'nb',
                   'log_variational'    :  True,
-                  'latent_distribution':  'normal'
+                  'latent_distribution':  'normal',
                   }
     #model_args.update(additional_kwargs)
 
     ## Create model
-    if method == 'NBcorr':
-        model = scBIVI.scBIVI(train_adata,mode='corr',**model_args)
+    if method == 'Extrinsic':
+        model = biVI.biVI(train_adata,mode='NBcorr',**model_args)
     elif method == 'NBuncorr':
-        model = scBIVI.scBIVI(train_adata,mode='uncorr',**model_args)
-    elif method == 'Poisson':
-        custom_dist = lambda x,mu1,mu2,theta,eps : custom_distributions.log_prob_poisson(x,mu1,mu2,theta,eps,THETA_IS = constant)
-        model = scBIVI.scBIVI(train_adata,mode='custom',custom_dist=custom_dist,**model_args)
-    elif method == 'nnNB':
-        custom_dist = lambda x,mu1,mu2,theta,eps : nnNB_module.log_prob_nnNB(x,mu1,mu2,theta,eps,THETA_IS = constant,
-                                                                             model= nnNB_module.model.to(torch.device('cuda')),
-                                                                             norm = NORM)
-        model = scBIVI.scBIVI(train_adata,mode='custom',custom_dist=custom_dist,**model_args)
+        model = biVI.biVI(train_adata,mode='NBuncorr',**model_args)
+    elif method == 'Constitutive':
+        model = biVI.biVI(train_adata,mode='Poisson',**model_args)
+    elif method == 'Bursty':
+        model = biVI.biVI(train_adata,mode='Bursty',**model_args)
     elif method == 'vanilla.U':
-      model = scvi.model.SCVI(train_adata,**model_args)
+        model_args['gene_likelihood'] = 'nb'
+        model = scvi.model.SCVI(train_adata,**model_args)
     elif method == 'vanilla.S':
-      model = scvi.model.SCVI(train_adata,**model_args)
-    elif method == 'vanilla.full':
-      model = scvi.model.SCVI(train_adata,**model_args)
+        model_args['gene_likelihood'] = 'nb'
+        model = scvi.model.SCVI(train_adata,**model_args)
+    elif method == 'scVI':
+        model_args['gene_likelihood'] = 'nb'
+        model = scvi.model.SCVI(train_adata,**model_args)
     elif method == 'vanilla.U.P':
-      model_args['gene_likelihood'] = 'poisson'
-      model = scvi.model.SCVI(train_adata,**model_args)
+        model_args['gene_likelihood'] = 'poisson'
+        model = scvi.model.SCVI(train_adata,**model_args)
     elif method == 'vanilla.S.P':
-      model_args['gene_likelihood'] = 'poisson'
-      model = scvi.model.SCVI(train_adata,**model_args)
+        model_args['gene_likelihood'] = 'poisson'
+        model = scvi.model.SCVI(train_adata,**model_args)
     elif method == 'vanilla.full.P':
-      model_args['gene_likelihood'] = 'poisson'
-      model = scvi.model.SCVI(train_adata,**model_args)
+        model_args['gene_likelihood'] = 'poisson'
+        model = scvi.model.SCVI(train_adata,**model_args)
     else:
         raise Exception('Input valid scVI model')
 
     ## Train model
+    plan_kwargs = {'lr' : lr,
+                   'n_epochs_kl_warmup' : max_epochs/2,
+                   }
+    
     start = time.time()
-    model.train(n_epochs = n_epochs,
-                lr       = lr,
-                n_epochs_kl_warmup = n_epochs/2,
-                metrics_to_monitor = ['reconstruction_error'],
-                frequency = 1,
-                train_size = 0.9)
+    model.train(max_epochs = max_epochs,
+                #early_stopping_monitor = ["reconstruction_loss_validation"],
+                train_size = 0.9,
+                check_val_every_n_epoch  = 1,
+                plan_kwargs = plan_kwargs)
 
+    
     runtime     = time.time() - start
     memory_used = torch.cuda.memory_allocated()
     results_dict[setup]['runtime'].append(runtime)
 
     ## Save training history
-    df_history = {'reconstruction_error_test_set' : model.history['reconstruction_error_test_set'],
-                  'reconstruction_error_train_set': model.history['reconstruction_error_train_set']}
-    df_history = pd.DataFrame(df_history)
+    df_history = {'reconstruction_error_test_set' : [model.history['reconstruction_loss_train']],
+                  'reconstruction_error_train_set': [model.history['reconstruction_loss_validation']]}
+    df_history = pd.DataFrame(df_history,index=[0])
     df_history = pd.DataFrame(df_history.stack())
     df = df_history
     df.reset_index(inplace=True)
@@ -223,8 +204,9 @@ def compare_setups(adata, setups, results_dict, hyperparameters, train_index = t
     train_error = model.get_reconstruction_error(train_adata)
     results_dict[setup]['recon_error'].append(np.array([train_error,test_error]))
 
-
+    # get reconstructed parameters
     results_dict[setup]['params'] = model.get_likelihood_parameters(adata_in)
+    results_dict[setup]['norm_means'] = model.get_normalized_expression(adata_in)
 
     ## Extract the embedding space for scVI
     X_out_full = model.get_latent_representation(adata_in)
@@ -240,16 +222,16 @@ def compare_setups(adata, setups, results_dict, hyperparameters, train_index = t
   return(results_dict,adata)
 
 
+# ==============================================================================================================
 # # Compare Distributions
-# 
-# 
+
 # Can change various training hyperparameters.
 
 
 
 # Hyper-parameters
 hyperparameters = { 'lr'       : 1e-3,
-        'n_epochs' : 100, 
+        'max_epochs' : 400, 
         'n_hidden' : 128,
         'n_layers' : 3 }
 
@@ -257,36 +239,29 @@ z  = 10
 constant = 'NAS_SHAPE'
 
 setups = [
-          f'vanilla.U-{z}-{constant}',
-          f'vanilla.S-{z}-{constant}',
-          f'vanilla.full-{z}-{constant}',
-          f'vanilla.U.P-{z}-{constant}',
-          f'vanilla.S.P-{z}-{constant}',
-          f'vanilla.full.P-{z}-{constant}',
-          f'Poisson-{z}-{constant}',
-          f'NBcorr-{z}-{constant}',
-          f'nnNB-{z}-{constant}'
+#           f'vanilla.U-{z}-{constant}',
+#           f'vanilla.S-{z}-{constant}',
+          f'scVI-{z}-{constant}',
+#           f'vanilla.U.P-{z}-{constant}',
+#           f'vanilla.S.P-{z}-{constant}',
+#           f'vanilla.full.P-{z}-{constant}',
+          f'Bursty-{z}-{constant}',
+          f'Constitutive-{z}-{constant}',
+          f'Extrinsic-{z}-{constant}'
           ]
 
-metrics_list = [f'X_{z}','runtime','df_history','params','recon_error']
+metrics_list = [f'X_{z}','runtime','df_history','params','recon_error','norm_means']
 results_dict = {setup:{metrics: [] for metrics in metrics_list} for setup in setups}
 
 
 results_dict, adata = compare_setups(adata, setups,results_dict,hyperparameters)
 results_dict['Cell Type'] = adata.obs['Cell Type']
-results_dict['train_index'] = train_index 
-results_dict['test_index'] =  test_index
-
+results_dict['train_index'] = train_index
+results_dict['test_index'] = test_index
 
 # # Save results dict
-results_file = open(f"../results/{name}_results_dict.pickle", "wb")
+
+results_file = open(f"../../results/{name}_results_dict.pickle", "wb")
 pickle.dump(results_dict, results_file)
 results_file.close()
-
-print(f'Done with {name}')
-
-
-
-
-
 

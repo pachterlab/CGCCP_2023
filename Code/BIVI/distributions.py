@@ -80,7 +80,8 @@ class BivariateNegativeBinomial(Distribution):
             mu1, mu2, theta = broadcast_all(mu1, mu2, theta)
 
         #### Modified for bivariate
-        self.mu, self.mu2 = mu1, mu2
+        self.mu = mu 
+        self.mu1, self.mu2 = mu1, mu2
         self.theta = theta
         self.use_custom = custom_dist is not None
         self.custom_dist = custom_dist
@@ -123,13 +124,13 @@ class BivariateNegativeBinomial(Distribution):
         if self.use_custom:
             calculate_log_nb = log_prob_custom
             log_nb = calculate_log_nb(value,
-                                      mu1=self.mu, mu2=self.mu2,
+                                      mu1=self.mu1, mu2=self.mu2,
                                       theta=self.theta, eps=self._eps,
                                       THETA_IS = self.THETA_IS,
                                       custom_dist = self.custom_dist)
         else:
             log_nb = log_prob_NBuncorr(value,
-                                      mu1 = self.mu, mu2 = self.mu2, eps = self._eps)
+                                      mu1 = self.mu1, mu2 = self.mu2, eps = self._eps)
 
         return log_nb
 
@@ -155,7 +156,7 @@ def log_prob_custom(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
 
 
 def log_prob_poisson(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
-                       theta: torch.Tensor, eps, THETA_IS, **kwargs):
+                       theta: torch.Tensor, THETA_IS, eps, **kwargs):
     ''' Calculates the uncorrelated Poisson likelihood for nascent and mature: just returns Poisson(n; mu1)*Poisson(m; mu2).'''
     # Divide the original data x into spliced (x) and unspliced (y)
     n,m = torch.chunk(x,2,dim=-1)
@@ -213,10 +214,8 @@ def log_prob_NBcorr(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
 
     return res
 
-
-
 def log_prob_NBuncorr(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
-                             theta: torch.Tensor, eps=1e-8):
+                             theta: torch.Tensor, THETA_IS, eps=1e-8):
     """
     Log likelihood (scalar) of a minibatch according to a bivariate nb model
     where spliced and unspliced are predicted separately.
@@ -259,3 +258,51 @@ def log_prob_NBuncorr(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
     )
 
     return res
+                      
+
+def log_prob_NBuncorr(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
+                             theta: torch.Tensor, THETA_IS, eps=1e-8):
+    """
+    Log likelihood (scalar) of a minibatch according to a bivariate nb model
+    where spliced and unspliced are predicted separately.
+    Parameters
+    ----------
+    x
+        data
+    mu1,mu2
+        mean of the negative binomial (has to be positive support) (shape: minibatch x vars/2)
+    theta
+        params (has to be positive support) (shape: minibatch x vars)
+    eps
+        numerical stability constant
+    Notes
+    -----
+    We parametrize the bernoulli using the logits, hence the softplus functions appearing.
+    """
+
+    # Divide the original data x into spliced (m) and unspliced (n)
+    # divide theta as well
+    n,m = torch.chunk(x,2,dim=-1)
+    theta1,theta2 = torch.chunk(theta,2,dim=-1)
+    
+    # In contrast to log_nb_positive_bi,
+    log_theta1_mu1_eps = torch.log(theta1 + mu1 + eps)
+    log_theta2_mu2_eps = torch.log(theta2 + mu2 + eps)
+
+    
+    res1 = (
+        theta1 * (torch.log(theta1 + eps) - log_theta1_mu1_eps)
+        + n * (torch.log(mu1 + eps) - log_theta1_mu1_eps)
+        + torch.lgamma(n + theta1)
+        - torch.lgamma(theta1)
+        - torch.lgamma(n + 1)
+    )
+    
+    res2 = (
+        theta2 * (torch.log(theta2 + eps) - log_theta2_mu2_eps)
+        + m * (torch.log(mu2 + eps) - log_theta2_mu2_eps)
+        + torch.lgamma(m + theta2)
+        - torch.lgamma(theta2)
+        - torch.lgamma(m + 1)
+    )
+    return res1+res2
