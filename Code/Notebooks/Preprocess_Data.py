@@ -136,11 +136,13 @@ adata_A.obs['Cell Type'] = subclass_labels
 
 
 # Remove low quality cells
-
 adata_A = adata_A[adata_A.obs['Cell Type'] != 'Low Quality',:]
+
+# Also remove doublets cells
+adata_A = adata_A[adata_A.obs['Cell Type'] != 'doublet',:]
+
+
 # Now, find highly variable genes.
-
-
 # normalize, log1p, then select highly variable genes :) 
 
 sc.pp.normalize_total(adata_A, target_sum=1e4)
