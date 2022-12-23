@@ -6,9 +6,9 @@
 
 
 # simulated data 
-# python3 train_biVI.py --name 'const_20ct_many' --data_dir ../../data/simulated_data/
-# python3 train_biVI.py --name 'extrinsic_20ct_many' --data_dir ../../data/simulated_data/
-# python3 train_biVI.py --name 'bursty_20ct_many' --data_dir ../../data/simulated_data/
+python3 train_biVI.py --name 'const_20ct_many' --data_dir ../../data/simulated_data/
+python3 train_biVI.py --name 'extrinsic_20ct_many' --data_dir ../../data/simulated_data/
+python3 train_biVI.py --name 'bursty_20ct_many' --data_dir ../../data/simulated_data/
 
 
 # allen data
