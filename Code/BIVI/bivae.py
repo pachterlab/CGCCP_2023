@@ -20,12 +20,11 @@ from scvi.nn import DecoderSCVI, Encoder, LinearDecoderSCVI, one_hot
 
 torch.backends.cudnn.benchmark = True
 
-
 from scvi.module._vae import VAE
 
-# import custom distributions 
-from distributions import BivariateNegativeBinomial, log_prob_poisson, log_prob_NBcorr
-from nnNB_module import log_prob_nnNB
+# import custom distributions
+from .distributions import BivariateNegativeBinomial, log_prob_poisson, log_prob_NBcorr
+from .nnNB_module import log_prob_nnNB
 
 torch.backends.cudnn.benchmark = True
 
@@ -51,8 +50,8 @@ class BIVAE(VAE):
                          n_continuous_cov=n_continuous_cov,
                          n_cats_per_cov=n_cats_per_cov,
                          **kwargs)
-        
-        
+
+
         # define the new custom distribution
         if mode == 'custom':
             self.custom_dist = custom_dist
@@ -112,7 +111,7 @@ class BIVAE(VAE):
             use_layer_norm=use_layer_norm_decoder,
             scale_activation="softplus" if use_size_factor_key else "softmax",
         )
-    
+
     # redefine the reconstruction error
     def get_reconstruction_loss(
         self, x, px_rate, px_r, px_dropout, **kwargs
@@ -131,7 +130,7 @@ class BIVAE(VAE):
         else:
             raise ValueError("Input valid gene_likelihood ['nb']")
         return reconst_loss
-    
+
     @auto_move_data
     def generative(
         self,
@@ -175,8 +174,8 @@ class BIVAE(VAE):
             *categorical_input,
             y,
         )
-        
-       
+
+
         if self.dispersion == "gene-label":
             px_r = F.linear(
                 one_hot(y, self.n_labels), self.px_r
@@ -217,7 +216,7 @@ class BIVAE(VAE):
             pl=pl,
             pz=pz,
         )
-    
+
     @torch.inference_mode()
     def get_likelihood_parameters(
         self,
@@ -261,7 +260,7 @@ class BIVAE(VAE):
             )
             print(generate_outputs.keys())
             px = generative_outputs["px"]
-            
+
             px_r = px.theta
             px_rate = px.mu
             assert px_rate.size[1] == 2000, f"px_rate size of 2000 expected, got: {px.size[1]}"
@@ -269,7 +268,7 @@ class BIVAE(VAE):
                 px_dropout = px.zi_probs
 
             n_batch = px_rate.size(0) if n_samples == 1 else px_rate.size(1)
-            
+
             px_r = px_r.cpu().numpy()
             if len(px_r.shape) == 1:
                 dispersion_list += [np.repeat(px_r[np.newaxis, :], n_batch, axis=0)]

@@ -1,17 +1,15 @@
+import os
+import importlib_resources
+
+import numpy as np
+from scipy import stats
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import numpy as np
-from scipy import stats
-
-
-import sys
-sys.path.append('../')
-
-
-device = 'cuda'
+## YC added
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class MLP(nn.Module):
 
@@ -26,7 +24,7 @@ class MLP(nn.Module):
 
         self.softmax = nn.Softmax(dim=1)
         self.sigmoid = torch.sigmoid
-        
+
 
     def forward(self, inputs):
 
@@ -35,31 +33,37 @@ class MLP(nn.Module):
 
         # pass to second layer, apply sigmoid
         l_2 = self.sigmoid(self.hidden(l_1))
-        
-        # pass to output layer 
+
+        # pass to output layer
         w_un = (self.output(l_2))
-        
+
         # pass out hyperparameter, sigmoid so it is between 0 and 1, then scale between 1 and 6
         hyp = self.sigmoid(self.hyp(l_2))
-    
+
         # apply softmax
         w_pred = self.softmax(w_un)
 
         return w_pred,hyp
 
+# YC added
+try:
+    package_resources = importlib_resources.files("BIVI")
+    model_path = os.path.join(package_resources,'BIVI/models/best_model_MODEL.zip')
+except:
+    import sys
+    model_path = ""
 
-model_path = '../BIVI/models/best_model_MODEL.zip'       
 npdf = 10
 
 # load in model
 model = MLP(7,10,256,256)
 model.load_state_dict(torch.load(model_path))
-model.eval() 
+model.eval()
 model.to(torch.device(device))
 
 
 def get_NORM(npdf,quantiles='cheb'):
-    '''' Returns quantiles based on the number of kernel functions npdf. 
+    '''' Returns quantiles based on the number of kernel functions npdf.
     Chebyshev or linear, with chebyshev as default.
     '''
     if quantiles == 'lin':
@@ -83,35 +87,35 @@ def generate_grid(logmean_cond,logstd_cond,norm):
     ''' Generate grid of kernel means based on the log mean and log standard devation of a conditional distribution.
     Generates the grid of quantile values in NORM, scaled by conditional moments.
     '''
-    
+
     logmean_cond = torch.reshape(logmean_cond,(-1,1))
     logstd_cond = torch.reshape(logstd_cond,(-1,1))
     translin = torch.exp(torch.add(logmean_cond,logstd_cond*norm))
-    
+
     return translin
 
 def get_ypred_at_RT(p,w,hyp,n,m,norm,eps=1e-8):
     '''Given a parameter vector (tensor) and weights (tensor), and hyperparameter,
     calculates ypred (Y), or approximate probability. Calculates over array of nascent (n) and mature (m) values.
     '''
-        
+
     p_vec = 10**p[:,0:3]
     logmean_cond = p[:,3]
     logstd_cond = p[:,4]
-    
+
     hyp = hyp*5+1
-        
+
     grid = generate_grid(logmean_cond,logstd_cond,norm)
     s = torch.zeros((len(n),10)).to(torch.device(device))
     s[:,:-1] = torch.diff(grid,axis=1)
     s *= hyp
     s[:,-1] = torch.sqrt(grid[:,-1])
-  
-    
+
+
     v = s**2
     r = grid**2/((v-grid)+eps)
     p_nb = 1-grid/v
-    
+
     Y = torch.zeros((len(n),1)).to(torch.device(device))
 
     # grid_i = grid[:,i].reshape((-1,1))
@@ -121,7 +125,7 @@ def get_ypred_at_RT(p,w,hyp,n,m,norm,eps=1e-8):
     # p_nb = p_nb[:,i]
 
 
-    y_ = m * torch.log(grid + eps) - grid - torch.lgamma(m+1) 
+    y_ = m * torch.log(grid + eps) - grid - torch.lgamma(m+1)
 
     if (p_nb > 1e-10).any():
       index = [p_nb > 1e-10]
@@ -164,21 +168,21 @@ def log_prob_nnNB(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
         beta = 1/theta
         b = mu1*beta
         gamma = b/mu2
-    
-    
-    # calculate nascent marginal negative binomial P(n) 
+
+
+    # calculate nascent marginal negative binomial P(n)
     # n_nb = 1/beta
     # p_nb = 1/(b+1)
     r = 1/beta
     # negative binomial of nascent RNA n
     prob_nascent = torch.lgamma(n+r) - torch.lgamma(n+1) - torch.lgamma(r)                 + r * torch.log(r/(r+mu1)+eps) + n * torch.log(mu1/(r+mu1)+eps)
- 
-  
+
+
     # get moments
     var1 = mu1 * (1+b)
     var2 = mu2 * (1+b*beta/(beta+gamma))
     cov = b**2/(beta+gamma)
-    
+
     # calculate conditional moments
     logvar1 = torch.log((var1/mu1**2)+1)
     logvar2 = torch.log((var2/mu2**2)+1)
@@ -194,8 +198,8 @@ def log_prob_nnNB(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
     logcorr = logcov/torch.sqrt(logvar1 * logvar2)
 
     logmean_cond = logmean2 + logcorr * logstd2/logstd1 * (torch.log(n+1) - logmean1)
-    logvar_cond = logvar2 * (1-logcorr**2)  
-    logstd_cond = logstd2 * torch.sqrt(1-logcorr**2)  
+    logvar_cond = logvar2 * (1-logcorr**2)
+    logstd_cond = logstd2 * torch.sqrt(1-logcorr**2)
 
     xmax_m = torch.ceil(torch.ceil(mu2) + 4*torch.sqrt(var2))
     xmax_m = torch.clip(xmax_m,30,np.inf).int()
@@ -218,12 +222,12 @@ def log_prob_nnNB(x: torch.Tensor, mu1: torch.Tensor, mu2: torch.Tensor,
     m = m.reshape(-1,1)
     # get conditional probabilites
     ypred_cond = get_ypred_at_RT(pv,w_,hyp_,n,m,norm)
-    
+
     # multiply conditionals P(m|n) by P(n)
     prob_nascent = torch.exp(prob_nascent)
 
     predicted = prob_nascent * ypred_cond.reshape((prob_nascent.shape))
     log_P = torch.log(predicted+eps)
 
-    
+
     return(log_P)
