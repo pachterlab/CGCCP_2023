@@ -192,12 +192,9 @@ def compare_setups(adata, setups, results_dict, hyperparameters, train_index = t
     ## Save training history
     df_history = {'reconstruction_error_test_set' : [model.history['reconstruction_loss_train']],
                   'reconstruction_error_train_set': [model.history['reconstruction_loss_validation']]}
-    df_history = pd.DataFrame(df_history,index=[0])
-    df_history = pd.DataFrame(df_history.stack())
-    df = df_history
-    df.reset_index(inplace=True)
-    df.columns = ['Epoch','Loss Type', 'Loss']
-    results_dict[setup]['df_history'] = df
+
+    
+    results_dict[setup]['df_history'] = df_history
 
     ## Get reconstruction loss on test data
     test_error  = model.get_reconstruction_error(test_adata)
@@ -227,7 +224,7 @@ def compare_setups(adata, setups, results_dict, hyperparameters, train_index = t
 
 # Can change various training hyperparameters.
 
-
+print('Training')
 
 # Hyper-parameters
 hyperparameters = { 'lr'       : 1e-3,
