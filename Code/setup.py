@@ -12,7 +12,7 @@ setup(
     install_requires=['scanpy',
                       'scvi-tools==0.18.0',
                       'loompy'],  # Optional
-    package_data={'':['BIVI/models/*']}, # Optional, required if package needs non python script files
+    package_data={"":['*zip']}, # Optional, required if package needs non python script files
     # include_package_data=True,
     # data_files = [('model', ['./BIVI/models/best_model_MODEL.zip'])],
 )
