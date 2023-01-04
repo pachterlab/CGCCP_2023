@@ -48,7 +48,7 @@ class MLP(nn.Module):
 # YC added
 try:
     package_resources = importlib_resources.files("BIVI")
-    model_path = os.path.join(package_resources,'BIVI/models/best_model_MODEL.zip')
+    model_path = os.path.join(package_resources,'models/best_model_MODEL.zip')
 except:
     import sys
     model_path = ""
