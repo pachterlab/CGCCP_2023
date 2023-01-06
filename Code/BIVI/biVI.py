@@ -12,8 +12,8 @@ from scvi._compat import Literal
 # from scvi.core.trainers import UnsupervisedTrainer
 from scvi.model._scvi import SCVI
 
-#### import the BIVAE model! 
-from bivae import BIVAE
+#### import the BIVAE model!
+from .bivae import BIVAE
 
 logger = logging.getLogger(__name__)
 
@@ -62,4 +62,3 @@ class biVI(SCVI):
             latent_distribution,
         )
         self.init_params_ = self._get_init_params(locals())
-        
