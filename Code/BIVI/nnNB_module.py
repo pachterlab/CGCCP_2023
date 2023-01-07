@@ -51,7 +51,7 @@ try:
     model_path = os.path.join(package_resources,'models/best_model_MODEL.zip')
 except:
     import sys
-    model_path = ""
+    model_path = "../BIVI/models/best_model_MODEL.zip"
 
 npdf = 10
 
