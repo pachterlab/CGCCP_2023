@@ -1,2 +1,2 @@
-# GCCCP_2023
+# CGCCP_2023
 This repository contains the scripts and notebooks for the preprint "Mechanistic generative models for multimodal single-cell RNA sequencing data". Although autoencoder models can be treated as purely phenomenological and descriptive, without any explicit claims about the process physics, it is possible to exploit *implicit* physics encoded in the mathematical formulation to encode physics. By interpreting the _scVI_ model as a description of a particular noise model, we can represent bivariate RNA distributions. We benchmark the implementation, _biVI_, on simulated and biological data.
