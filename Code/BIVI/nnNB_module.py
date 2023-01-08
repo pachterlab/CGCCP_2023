@@ -49,9 +49,11 @@ class MLP(nn.Module):
 try:
     package_resources = importlib_resources.files("BIVI")
     model_path = os.path.join(package_resources,'models/best_model_MODEL.zip')
+    print(package_resources)
 except:
     import sys
-    model_path = "../BIVI/models/best_model_MODEL.zip"
+    package_resources = importlib_resources.files("models")
+    model_path = os.path.join(package_resources,'best_model_MODEL.zip')
 
 npdf = 10
 
