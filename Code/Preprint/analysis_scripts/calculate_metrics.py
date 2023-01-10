@@ -152,7 +152,7 @@ def nn_percentages(x,cluster_assignments):
   return nn_percent_array
 
 
-def get_metrics(name,results_dict,index,simulated_params = None):
+def get_metrics(name,results_dict,simulated_params,cluster_assignments,adata):
   ''' Given results_dict from model training, returns MSE between simulated/recon means, Pearson correlation between simulated/recon means,
   and percentage of N nearest neighbors in the same cluster assignment for all cells. 
 
@@ -160,7 +160,6 @@ def get_metrics(name,results_dict,index,simulated_params = None):
   params
   ------
   name: name of data
-  index: test or train index
   simulated params: IF you pass simulated params, will calculate MSE and Pearson R between simulated means 
         and reconstructed means \
         rather than observed counts and reconstructed means
@@ -184,7 +183,7 @@ def get_metrics(name,results_dict,index,simulated_params = None):
 
 
   # get observed means and dispersions
-  obs_means = adata[index,:].layers['counts'].toarray()
+  obs_means = adata[:,:].layers['counts'].toarray()
 
   for setup in setups:
     print(setup)
@@ -194,8 +193,8 @@ def get_metrics(name,results_dict,index,simulated_params = None):
     setup_metric_dict = {}
 
     # unpack dictionary
-    X_z = setup_dict[f'X_{z}'][index]
-    recon_means = setup_dict['params']['mean'][index,:]
+    X_z = setup_dict[f'X_{z}']
+    recon_means = setup_dict['params']['mean']
     print(recon_means.shape)
     
     if simulated_params is not None:
@@ -226,7 +225,7 @@ def get_metrics(name,results_dict,index,simulated_params = None):
       setup_metric_dict['MSE'] = np.array([ calc_MSE_1D(recon_means[i],obs_means[cluster_assignments[i]]) for i in range(len(X_z)) ])
       setup_metric_dict['Pearson_R'] = np.array([ stats.pearsonr(recon_means[i], obs_means[cluster_assignments[i]])[0] for i in range(len(X_z)) ])
 
-    setup_metric_dict['nearest_neighbors'] = nn_percentages(X_z,cluster_assignments[index])
+    setup_metric_dict['nearest_neighbors'] = nn_percentages(X_z,cluster_assignments)
 
     metric_dict[setup] = setup_metric_dict
 
@@ -260,9 +259,9 @@ def get_metrics_old(name,results_dict,adata,index,N=100):
 
 
   # get observed means and dispersions
-  obs_means_U = adata[index,adata.var['Spliced']==0].layers['counts'].toarray()
-  obs_means_S = adata[index,adata.var['Spliced']==1].layers['counts'].toarray()
-  obs_means = adata[index,:].layers['counts'].toarray()
+  obs_means_U = adata[:,adata.var['Spliced']==0].layers['counts'].toarray()
+  obs_means_S = adata[:,adata.var['Spliced']==1].layers['counts'].toarray()
+  obs_means = adata[:,:].layers['counts'].toarray()
 
 
   for setup in setups:
@@ -273,21 +272,21 @@ def get_metrics_old(name,results_dict,adata,index,N=100):
     setup_metric_dict = {}
 
     # unpack dictionary
-    X_z = setup_dict[f'X_{z}'][index]
+    X_z = setup_dict[f'X_{z}']
     
     if '.U' in setup:
-      recon_means_U = setup_dict['params']['mean'][index,:]
+      recon_means_U = setup_dict['params']['mean'][:,:]
       setup_metric_dict['MSE_U'] = np.array([ calc_MSE_1D(recon_means_U[i],obs_means_U[i]) for i in range(len(X_z)) ])
       setup_metric_dict['Pearson_R_U'] = np.array([ stats.pearsonr(recon_means_U[i], obs_means_U[i])[0] for i in range(len(X_z)) ])
 
     elif '.S' in setup:
-      recon_means_S = setup_dict['params']['mean'][index,:]
+      recon_means_S = setup_dict['params']['mean'][:,:]
       setup_metric_dict['MSE_S'] = np.array([ calc_MSE_1D(recon_means_S[i],obs_means_S[i]) for i in range(len(X_z)) ])
       setup_metric_dict['Pearson_R_S'] = np.array([ stats.pearsonr(recon_means_S[i], obs_means_S[i])[0] for i in range(len(X_z)) ])
     
     else:
-      recon_means_U = setup_dict['params']['mean'][index,:int(setup_dict['params']['mean'].shape[1]/2)]
-      recon_means_S = setup_dict['params']['mean'][index,int(setup_dict['params']['mean'].shape[1]/2):]
+      recon_means_U = setup_dict['params']['mean'][:,:int(setup_dict['params']['mean'].shape[1]/2)]
+      recon_means_S = setup_dict['params']['mean'][:,int(setup_dict['params']['mean'].shape[1]/2):]
       setup_metric_dict['MSE_U'] = np.array([ calc_MSE_1D(recon_means_U[i], obs_means_U[i]) for i in range(len(X_z)) ])
       setup_metric_dict['Pearson_R_U'] = np.array([ stats.pearsonr(recon_means_U[i], obs_means_U[i])[0] for i in range(len(X_z)) ])
       setup_metric_dict['MSE_S'] = np.array([ calc_MSE_1D(recon_means_S[i], obs_means_S[i]) for i in range(len(X_z)) ])
@@ -297,7 +296,7 @@ def get_metrics_old(name,results_dict,adata,index,N=100):
 #     if (('.P' not in setup) and ('const' not in name)):      
 #       recon_disp = setup_dict['params']['dispersions']
 #       setup_metric_dict['alpha correlation'] = stats.pearsonr(sim_disp[0],recon_disp[0,:2000])[0]
-    setup_metric_dict['nearest_neighbors'] = nn_percentages(X_z,N,cluster_assignments[index])
+    setup_metric_dict['nearest_neighbors'] = nn_percentages(X_z,N,cluster_assignments)
 
     metric_dict[setup] = setup_metric_dict
 
