@@ -20,8 +20,8 @@ Training Models:
 Analyses:
 * `kld.py` and `kld.sh`: scripts to calculate kld between simulated and ground truth distributions for simulated data <br />
 * `Analysis1a_Simulated_Bursty.ipynb`: calculates metrics and generates plots for supplementary figure for bursty simulated data <br />
-* `Analysis1b_Simulated_Extrinsic.ipynb`: calculates metrics and generates plots for supplementary figure for constitutive simulated data <br />
-* `Analysis1c_Simulated_Constitutive.ipynb`: calculates metrics and generates plots for supplementary figure for extrinsic simulated data <br />
+* `Analysis1b_Simulated_Extrinsic.ipynb`: calculates metrics and generates plots for supplementary figure for extrinsic simulated data <br />
+* `Analysis1c_Simulated_Constitutive.ipynb`: calculates metrics and generates plots for supplementary figure for constitutive simulated data <br />
 * `Analysis2_Allen.ipynb`: calculates metrics and generates plots for supplementary figure for Allen data sample B08 <br />
 * `Analysis3_Simulated_Distributions.ipynb`: visualization of reconstructed and sampled distributions, spread of inferred parameters for bursty simulated data, preprint Figure 2 <br />
 * `Analysis4_Allen_Distributions.ipynb`: visualization of reconstructed and sampled distributions, spread of inferred parameters for Allen data sample B08, preprint Figure 3 <br />
