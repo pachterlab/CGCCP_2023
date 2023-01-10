@@ -1,23 +1,23 @@
 Folder containing scripts and notebooks for data simulation, preprocessing, and training biVI models.
 
 
-Simulated data generation:
+Simulated data generation: <br />
 `Define_Simulation_Parameters`: analysis of experimental data sets to determine reasonable parameters for simulation <br />
 `Simulate_data.ipynb`: notebook to simulate bursty, constitutive, and extrinsic parameters and count matrices <br />
 
-Allen data:
+Allen data: <br />
 `Preprocess_Data.ipynb`: notebeook identical to the script `Preprocess_Data.py` called by `preprocess.sh` to process Allen 10x datasets
 
-Data availability:
+Data availability: <br />
 Simulated data and processed Allen data (sample B08) can be found in the Zenodo package 7497222. 
 
-Training Models:
+Training Models: <br />
 `Train.ipynb`: training notebook to explore various configurations and troubleshoot <br />
 `train_biVI.py`: training script run <br />
 `train.sh`: bash script <br />
 
 
-Analyses:
+Analyses: <br />
 `kld.py` and `kld.sh`: scripts to calculate kld between simulated and ground truth distributions for simulated data <br />
 `Analysis1a_Simulated_Bursty.ipynb`: calculates metrics and generates plots for supplementary figure for bursty simulated data <br />
 `Analysis1b_Simulated_Extrinsic.ipynb`: calculates metrics and generates plots for supplementary figure for constitutive simulated data <br />
