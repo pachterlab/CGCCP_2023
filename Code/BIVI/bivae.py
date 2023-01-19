@@ -299,7 +299,7 @@ class BIVAE(VAE):
             return_dict["dispersions"] = dispersions
         if self.module.gene_likelihood == "nb":
             return_dict["dispersions"] = dispersions
-            
+            print('testing')
         if self.mode == 'Bursty':
             mu1 = means[:,:np.shape(params['mean'])[1]/2]
             mu2 = means[:,np.shape(params['mean'])[1]/2:]
