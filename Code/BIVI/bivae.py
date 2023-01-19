@@ -51,7 +51,7 @@ class BIVAE(VAE):
                          n_cats_per_cov=n_cats_per_cov,
                          **kwargs)
 
-
+        self.mode = mode
         # define the new custom distribution
         if mode == 'custom':
             self.custom_dist = custom_dist
@@ -292,6 +292,7 @@ class BIVAE(VAE):
 
         return_dict = {}
         return_dict["mean"] = means
+        print(self.mode)
 
         if self.module.gene_likelihood == "zinb":
             return_dict["dropout"] = dropout
