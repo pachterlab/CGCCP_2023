@@ -299,8 +299,8 @@ class BIVAE(VAE):
             return_dict["dispersions"] = dispersions
         if self.module.gene_likelihood == "nb":
             return_dict["dispersions"] = dispersions
-            print('testing')
-        if self.mode == 'Bursty':
+
+        if self.module.mode == 'Bursty':
             mu1 = means[:,:np.shape(params['mean'])[1]/2]
             mu2 = means[:,np.shape(params['mean'])[1]/2:]
             return_dict['unspliced_means'] = mu1
@@ -313,7 +313,7 @@ class BIVAE(VAE):
             return_dict['rel_splicing_rate'] = beta
             return_dict['rel_degradation_rate'] = gamma
             
-        if self.mode == 'NBcorr':
+        if self.module.mode == 'NBcorr':
             mu1 = means[:,:np.shape(params['mean'])[1]/2]
             mu2 = means[:,np.shape(params['mean'])[1]/2:]
             return_dict['unspliced_means'] = mu1
@@ -326,8 +326,7 @@ class BIVAE(VAE):
             return_dict['rel_splicing_rate'] = beta
             return_dict['rel_degradation_rate'] = gamma
             
-            
-        if self.mode == 'Poisson':
+        if self.module.mode == 'Poisson':
             mu1 = means[:,:np.shape(params['mean'])[1]/2]
             mu2 = means[:,np.shape(params['mean'])[1]/2:]
             return_dict['unspliced_means'] = mu1
