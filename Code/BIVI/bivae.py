@@ -251,6 +251,8 @@ class BIVAE(VAE):
         dropout_list = []
         mean_list = []
         dispersion_list = []
+        
+        
         for tensors in scdl:
             inference_kwargs = dict(n_samples=n_samples)
             _, generative_outputs = self.module.forward(
@@ -278,6 +280,7 @@ class BIVAE(VAE):
             if self.module.gene_likelihood == "zinb":
                 dropout_list += [px_dropout.cpu().numpy()]
                 dropout = np.concatenate(dropout_list, axis=-2)
+                
         means = np.concatenate(mean_list, axis=-2)
         dispersions = np.concatenate(dispersion_list, axis=-2)
 
@@ -295,5 +298,75 @@ class BIVAE(VAE):
             return_dict["dispersions"] = dispersions
         if self.module.gene_likelihood == "nb":
             return_dict["dispersions"] = dispersions
+            
+        if self.mode == 'Bursty':
+            mu1 = means[:,:np.shape(params['mean'])[1]/2]
+            mu2 = means[:,np.shape(params['mean'])[1]/2:]
+            return_dict['unspliced_means'] = mu1
+            return_dict['spliced_means'] = mu2
+            return_dict['dispersions'] = dispersions
+            
+            b,beta,gamma = get_bursty_params(mu1,mu2,dispersions)
+            
+            return_dict['burst_size'] = b
+            return_dict['rel_splicing_rate'] = beta
+            return_dict['rel_degradation_rate'] = gamma
+            
+        if self.mode == 'NBcorr':
+            mu1 = means[:,:np.shape(params['mean'])[1]/2]
+            mu2 = means[:,np.shape(params['mean'])[1]/2:]
+            return_dict['unspliced_means'] = mu1
+            return_dict['spliced_means'] = mu2
+            return_dict['dispersions'] = dispersions
+            
+            alpha,beta,gamma = get_extrinsic_params(mu1,mu2,dispersions)
+            
+            return_dict['alpha'] = alpha
+            return_dict['rel_splicing_rate'] = beta
+            return_dict['rel_degradation_rate'] = gamma
+            
+            
+        if self.mode == 'Poisson':
+            mu1 = means[:,:np.shape(params['mean'])[1]/2]
+            mu2 = means[:,np.shape(params['mean'])[1]/2:]
+            return_dict['unspliced_means'] = mu1
+            return_dict['spliced_means'] = mu2
+            
+            beta,gamma = 1/mu1,1/mu2
+
+            return_dict['rel_splicing_rate'] = beta
+            return_dict['rel_degradation_rate'] = gamma
 
         return return_dict
+
+def get_bursty_params(mu1,mu2,theta):
+    ''' Returns b, beta, gamma of bursty distribution given mu1, mu2 and theta.
+    Returns whatever size was input. 
+    '''
+    
+    b = mu1/theta
+    beta = 1/theta
+    gamma = mu1/(mu2*theta)
+    
+    
+    return(b,beta,gamma)
+
+
+def get_extrinsic_params(mu1,mu2,theta):
+    ''' Returns splicing rate beta, degradation rate gamma, and alpha (mean of transcription rate distribution) 
+    given BVNB extrinsic noise model.
+    '''
+    alpha = theta
+    beta = theta/mu1
+    gamma = theta/mu2
+    
+    
+    return(alpha,beta,gamma)
+
+def get_constitutive_params(mu1,mu2):
+    ''' Returns rate of splicing rate beta and rate of degradation gamma given constitutive model.
+    '''
+    beta = 1/mu1
+    gamma = 1/mu2
+    
+    return(beta,gamma)
