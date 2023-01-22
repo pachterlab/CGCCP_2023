@@ -263,12 +263,12 @@ class BIVAE(VAE):
                 inference_kwargs=inference_kwargs,
                 compute_loss=False,
             )
-            print(generate_outputs.keys())
+
             px = generative_outputs["px"]
 
             px_r = px.theta
             px_rate = px.mu
-            assert px_rate.size[1] == 2000, f"px_rate size of 2000 expected, got: {px.size[1]}"
+ 
             if self.module.gene_likelihood == "zinb":
                 px_dropout = px.zi_probs
 
@@ -295,7 +295,7 @@ class BIVAE(VAE):
 
         return_dict = {}
         return_dict["mean"] = means
-        print(self.mode)
+
 
         if self.module.gene_likelihood == "zinb":
             return_dict["dropout"] = dropout
@@ -305,9 +305,9 @@ class BIVAE(VAE):
             print('gene likelihood nb, getting params')
 
         if self.module.mode == 'Bursty':
-            print('Bursty mode, getting params')
-            mu1 = means[:,:np.shape(params['mean'])[1]/2]
-            mu2 = means[:,np.shape(params['mean'])[1]/2:]
+            print('Bursty mode, returning parameters')
+            mu1 = means[:,:int(np.shape(means)[1]/2)]
+            mu2 = means[:,int(np.shape(means)[1]/2):]
             return_dict['unspliced_means'] = mu1
             return_dict['spliced_means'] = mu2
             return_dict['dispersions'] = dispersions
@@ -343,8 +343,6 @@ class BIVAE(VAE):
             return_dict['rel_degradation_rate'] = gamma
 
         return return_dict
-    
-     def test_function(word_to_print):
-        print(word_to_print)
+
         
 
