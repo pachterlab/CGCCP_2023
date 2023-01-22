@@ -53,7 +53,7 @@ class BIVAE(VAE):
 
         self.mode = mode
         print('Initiating biVAE')
-        print(self.mode)
+        print('Mode: ',self.mode)
         
         # define the new custom distribution
         if mode == 'custom':
@@ -302,6 +302,7 @@ class BIVAE(VAE):
             return_dict["dispersions"] = dispersions
         if self.module.gene_likelihood == "nb":
             return_dict["dispersions"] = dispersions
+            print('gene likelihood nb, getting params')
 
         if self.module.mode == 'Bursty':
             print('Bursty mode, getting params')
