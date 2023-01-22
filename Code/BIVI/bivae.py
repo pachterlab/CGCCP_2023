@@ -52,6 +52,9 @@ class BIVAE(VAE):
                          **kwargs)
 
         self.mode = mode
+        print('Initiating biVAE')
+        print(self.mode)
+        
         # define the new custom distribution
         if mode == 'custom':
             self.custom_dist = custom_dist
