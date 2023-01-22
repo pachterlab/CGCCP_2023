@@ -62,3 +62,4 @@ class biVI(SCVI):
             latent_distribution,
         )
         self.init_params_ = self._get_init_params(locals())
+        print('Initiating biVI model')
