@@ -343,6 +343,10 @@ class BIVAE(VAE):
             return_dict['rel_degradation_rate'] = gamma
 
         return return_dict
+    
+    def test_function(word_to_print):
+        print(word_to_print)
+        
 
 def get_bursty_params(mu1,mu2,theta):
     ''' Returns b, beta, gamma of bursty distribution given mu1, mu2 and theta.
