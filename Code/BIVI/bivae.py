@@ -344,7 +344,7 @@ class BIVAE(VAE):
 
         return return_dict
     
-    def test_function(word_to_print):
+     def test_function(word_to_print):
         print(word_to_print)
         
 

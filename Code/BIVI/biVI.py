@@ -89,6 +89,7 @@ class biVI(SCVI):
         batch_size
             Minibatch size for data loading into model. Defaults to `scvi.settings.batch_size`.
         """
+        print(2+2)
         adata = self._validate_anndata(adata)
 
         scdl = self._make_data_loader(
@@ -101,22 +102,22 @@ class biVI(SCVI):
         
         
         for tensors in scdl:
+            print(tensors.keys())
             inference_kwargs = dict(n_samples=n_samples)
             _, generative_outputs = self.module.forward(
                 tensors=tensors,
                 inference_kwargs=inference_kwargs,
                 compute_loss=False,
             )
-            print(generate_outputs.keys())
             px = generative_outputs["px"]
 
             px_r = px.theta
             px_rate = px.mu
-            assert px_rate.size[1] == 2000, f"px_rate size of 2000 expected, got: {px.size[1]}"
+    
             if self.module.gene_likelihood == "zinb":
                 px_dropout = px.zi_probs
 
-            n_batch = px_rate.size(0) if n_samples == 1 else px_rate.size(1)
+            n_batch = px_rate.size()[0] if n_samples == 1 else px_rate.size(1)
 
             px_r = px_r.cpu().numpy()
             if len(px_r.shape) == 1:
@@ -139,19 +140,19 @@ class biVI(SCVI):
 
         return_dict = {}
         return_dict["mean"] = means
-        print(self.mode)
+
 
         if self.module.gene_likelihood == "zinb":
             return_dict["dropout"] = dropout
             return_dict["dispersions"] = dispersions
         if self.module.gene_likelihood == "nb":
             return_dict["dispersions"] = dispersions
-            print('gene likelihood nb, getting params')
+
 
         if self.module.mode == 'Bursty':
-            print('Bursty mode, getting params')
-            mu1 = means[:,:np.shape(params['mean'])[1]/2]
-            mu2 = means[:,np.shape(params['mean'])[1]/2:]
+            print('Bursty mode, getting parameters')
+            mu1 = means[:,:int(np.shape(return_dict['mean'])[1]/2)]
+            mu2 = means[:,int(np.shape(return_dict['mean'])[1]/2):]
             return_dict['unspliced_means'] = mu1
             return_dict['spliced_means'] = mu2
             return_dict['dispersions'] = dispersions
@@ -187,9 +188,7 @@ class biVI(SCVI):
             return_dict['rel_degradation_rate'] = gamma
 
         return return_dict
-    
-    def test_function(word_to_print):
-        print(word_to_print)
+
         
 
 def get_bursty_params(mu1,mu2,theta):
