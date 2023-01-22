@@ -348,34 +348,3 @@ class BIVAE(VAE):
         print(word_to_print)
         
 
-def get_bursty_params(mu1,mu2,theta):
-    ''' Returns b, beta, gamma of bursty distribution given mu1, mu2 and theta.
-    Returns whatever size was input. 
-    '''
-    
-    b = mu1/theta
-    beta = 1/theta
-    gamma = mu1/(mu2*theta)
-    
-    
-    return(b,beta,gamma)
-
-
-def get_extrinsic_params(mu1,mu2,theta):
-    ''' Returns splicing rate beta, degradation rate gamma, and alpha (mean of transcription rate distribution) 
-    given BVNB extrinsic noise model.
-    '''
-    alpha = theta
-    beta = theta/mu1
-    gamma = theta/mu2
-    
-    
-    return(alpha,beta,gamma)
-
-def get_constitutive_params(mu1,mu2):
-    ''' Returns rate of splicing rate beta and rate of degradation gamma given constitutive model.
-    '''
-    beta = 1/mu1
-    gamma = 1/mu2
-    
-    return(beta,gamma)
