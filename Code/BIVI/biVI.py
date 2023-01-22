@@ -4,7 +4,7 @@ from typing import Iterable, List, Optional, Dict, Sequence
 
 from anndata import AnnData
 import torch
-import numpy
+import numpy as np
 
 from scvi._compat import Literal
 # from scvi.core.data_loaders import ScviDataLoader
