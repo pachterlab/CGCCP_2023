@@ -304,6 +304,7 @@ class BIVAE(VAE):
             return_dict["dispersions"] = dispersions
 
         if self.module.mode == 'Bursty':
+            print('Bursty mode, getting params')
             mu1 = means[:,:np.shape(params['mean'])[1]/2]
             mu2 = means[:,np.shape(params['mean'])[1]/2:]
             return_dict['unspliced_means'] = mu1
