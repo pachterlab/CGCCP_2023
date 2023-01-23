@@ -89,7 +89,7 @@ class biVI(SCVI):
         batch_size
             Minibatch size for data loading into model. Defaults to `scvi.settings.batch_size`.
         """
-        print(2+2)
+
         adata = self._validate_anndata(adata)
 
         scdl = self._make_data_loader(
@@ -102,7 +102,7 @@ class biVI(SCVI):
         
         
         for tensors in scdl:
-            print(tensors.keys())
+
             inference_kwargs = dict(n_samples=n_samples)
             _, generative_outputs = self.module.forward(
                 tensors=tensors,
@@ -164,6 +164,7 @@ class biVI(SCVI):
             return_dict['rel_degradation_rate'] = gamma
             
         if self.module.mode == 'NBcorr':
+            print('Extrinsic mode, getting parameters')
             mu1 = means[:,:np.shape(params['mean'])[1]/2]
             mu2 = means[:,np.shape(params['mean'])[1]/2:]
             return_dict['unspliced_means'] = mu1
@@ -177,6 +178,7 @@ class biVI(SCVI):
             return_dict['rel_degradation_rate'] = gamma
             
         if self.module.mode == 'Poisson':
+            print('Constitutive mode, getting parameters')
             mu1 = means[:,:np.shape(params['mean'])[1]/2]
             mu2 = means[:,np.shape(params['mean'])[1]/2:]
             return_dict['unspliced_means'] = mu1
