@@ -130,7 +130,7 @@ def nn_percentages(x,cluster_assignments):
         cluster_assignments_ = cluster_assignments[cluster_assignments == cluster]
         x_ = x[cluster_assignments == cluster]
         
-        # how many neighbors where in this unique cluster
+        # how many neighbors were in this unique cluster
         N_ = len(cluster_assignments_)
         
         # set up nearest neighbor class

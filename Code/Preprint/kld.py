@@ -41,7 +41,7 @@ import scanpy as sc
 # my modules
 from distributions import log_prob_NBuncorr, log_prob_poisson, log_prob_NBcorr
 from nnNB_module import log_prob_nnNB
-import differential_expression as de
+# import differential_expression as de
 
 device = 'cuda'
 
@@ -75,20 +75,29 @@ adata.var_names_make_unique()
 if 'gene_name' in adata.var.columns:
     adata.var_names = adata.var['gene_name'].to_list()
     
-cell_types = results_dict.pop('Cell Type')
+
 train_index = results_dict.pop('train_index')
 test_index = results_dict.pop('test_index')
 
+index_ = test_index
 
-cluster_assignments = np.array([int(ct[2:]) for ct in cell_types])
+cell_types = results_dict.pop('Cell Type')[index_]   
 
 # anndata objects for spliced and unspliced counts
-adata_s = adata[:,adata.var['Spliced']==1].copy()    
-adata_u = adata[:,adata.var['Spliced']==0].copy()
+adata_s = adata[:,adata.var['Spliced']==1].copy()[index_]    
+adata_u = adata[:,adata.var['Spliced']==0].copy()[index_]    
 
 
 
 unique_ct = np.unique(np.array(adata.obs['Cell Type'].tolist()))
+
+
+for setup in results_dict.keys():
+
+    results_dict[setup]['params']['mean'] = results_dict[setup]['params']['mean'][index_]
+    results_dict[setup]['params']['dispersions'] = results_dict[setup]['params']['dispersions'][index_]
+    
+    
 
 
 
@@ -127,18 +136,20 @@ def reconstruct_ct_distribution(gene,cell_type,setups,max_vals=[10,10]):
             theta = [torch.concat((theta1[i],theta2[i]),axis=1) for i in range(len(theta1))]
     
         elif '-' in setup:
-            N = int(len(results_dict[setup]['params']['mean'][0,:])/2)
             mus_u = results_dict[setup]['params']['mean'][cell_types == cell_type,gene]
-            mus_s =  results_dict[setup]['params']['mean'][cell_types == cell_type,gene+N]
+            mus_s = results_dict[setup]['params']['mean'][cell_types == cell_type,gene+2000]
             thetas = results_dict[setup]['params']['dispersions'][cell_types == cell_type,gene]
         
             mu1 = [torch.ones((x+1,y+1))*mus_u[i] for i in range(len(mus_u))]
             mu2 = [ torch.ones((x+1,y+1))*mus_s[i] for i in range(len(mus_u))]
+            
             theta = [torch.ones((x+1,y+1))*thetas[i] for i in range(len(thetas))]
+            
 
         if "scVI" in setup:
             prob = np.array([torch.exp(log_prob_NBuncorr(X, mu1[i], mu2[i], theta[i], eps = 1e-8, THETA_IS = 'NAS_SHAPE')).numpy()
                     for i in range(len(mu1))])
+
 
             prob_dict[setup] = np.sum(prob,axis=0)
         
@@ -148,13 +159,18 @@ def reconstruct_ct_distribution(gene,cell_type,setups,max_vals=[10,10]):
             prob_dict[setup] = np.sum(prob,axis=0)
         
         elif "Bursty" in setup:
+ 
+            
             prob = np.array([torch.exp(log_prob_nnNB(X.to(torch.device(device)), 
                                    mu1[i].to(torch.device(device)), 
                                    mu2[i].to(torch.device(device)), 
                                    theta[i].to(torch.device(device)), 
                                    eps = 1e-8, THETA_IS = 'NAS_SHAPE')).detach().cpu().numpy()
                                     for i in range(len(mu1))])
+            
+
             prob_dict[setup] = np.sum(prob,axis=0)
+            
     
         elif "Extrinsic" in setup:
             prob = np.array([torch.exp(log_prob_NBcorr(X, mu1[i], mu2[i], theta[i], eps = 1e-8, THETA_IS = 'NAS_SHAPE')).numpy()
@@ -163,27 +179,32 @@ def reconstruct_ct_distribution(gene,cell_type,setups,max_vals=[10,10]):
         
         
         if ('TRUE' in setup) and ('bursty' in name):
+   
+
             b, beta, gamma  = 10**simulated_params[ct_number,gene,:]
             av_mu_u,av_mu_s = b/beta, b/gamma
             av_theta = 1/beta
             mu1,mu2 = torch.ones((x+1,y+1))*av_mu_u, torch.ones((x+1,y+1))*av_mu_s
-            theta = [torch.ones((x+1,y+1))*av_theta for i in range(len(mu1))]
-            prob = np.array([torch.exp(log_prob_nnNB(X.to(torch.device(device)), 
-                                   mu1[i].to(torch.device(device)), 
-                                   mu2[i].to(torch.device(device)), 
-                                   theta[i].to(torch.device(device)), 
+            theta = torch.ones((x+1,y+1))*av_theta 
+            prob = torch.exp(log_prob_nnNB(X.to(torch.device(device)), 
+                                   mu1.to(torch.device(device)), 
+                                   mu2.to(torch.device(device)), 
+                                   theta.to(torch.device(device)), 
                                    eps = 1e-8, THETA_IS = 'NAS_SHAPE')).detach().cpu().numpy()
-                                    for i in range(len(mu1))])
+                                    
+
+            prob_dict[setup] = prob
+            
         if ('TRUE' in setup) and ('const' in name):
             beta, gamma  = 10**simulated_params[ct_number,gene,:]
             av_mu_u,av_mu_s = 1/beta, 1/gamma
             mu1,mu2 = torch.ones((x+1,y+1))*av_mu_u, torch.ones((x+1,y+1))*av_mu_s
             # dummy theta, just to place hold in function, value means nothing
-            theta = [torch.ones((x+1,y+1))*1 for i in range(len(mu1))]
-            prob = np.array([torch.exp(log_prob_poisson(X, mu1[i], mu2[i], theta[i], eps = 1e-8, THETA_IS = 'NAS_SHAPE')).numpy()
-                    for i in range(len(mu1))])
+            theta = torch.ones((x+1,y+1))
+            prob = torch.exp(log_prob_poisson(X, mu1, mu2, theta, eps = 1e-8, THETA_IS = 'NAS_SHAPE')).detach().cpu().numpy()
+    
         
-            prob_dict[setup] = np.sum(prob,axis=0)
+            prob_dict[setup] = prob
             
         if ('TRUE' in setup) and ('extrinsic' in name):
             alpha = simulated_params[ct_number,gene,0]
@@ -191,11 +212,11 @@ def reconstruct_ct_distribution(gene,cell_type,setups,max_vals=[10,10]):
             av_mu_u,av_mu_s = alpha/beta, alpha/gamma
             av_theta = alpha
             mu1,mu2 = torch.ones((x+1,y+1))*av_mu_u, torch.ones((x+1,y+1))*av_mu_s
-            theta = [torch.ones((x+1,y+1))*av_theta for i in range(len(mu1))]
-            prob = np.array([torch.exp(log_prob_NBcorr(X, mu1[i], mu2[i], theta[i], eps = 1e-8, THETA_IS = 'NAS_SHAPE')).numpy()
-                    for i in range(len(mu1))])
+            theta = torch.ones((x+1,y+1))*av_theta
+            prob = torch.exp(log_prob_NBcorr(X, mu1, mu2, theta, eps = 1e-8, THETA_IS = 'NAS_SHAPE')).detach().cpu().numpy()
+            
         
-            prob_dict[setup] = np.sum(prob,axis=0)
+            prob_dict[setup] = prob
             
     return(prob_dict)
 
@@ -216,14 +237,15 @@ kld_dict = {working_setup : [], 'scVI-10-NAS_SHAPE' : [] }
 eps = 10**-40
 # cell types
 for i,ct in enumerate(unique_ct):
-    print(ct)
+    print('starting cell type:',ct)
     # genes
     for g in range(2000):
 
         prob_dict = reconstruct_ct_distribution(gene = g, cell_type = ct, 
                                          setups = ['TRUE',working_setup,'scVI-10-NAS_SHAPE'],
                                          max_vals=[50,50])
-        
+
+
         P_biVI = prob_dict[working_setup]
         P_biVI = P_biVI/np.sum(P_biVI)
         P_biVI[P_biVI < eps] = eps

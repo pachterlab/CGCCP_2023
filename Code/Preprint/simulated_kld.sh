@@ -1,5 +1,5 @@
 # names=("bursty_20ct_many" "const_20ct_many" "extrinsic_20ct_many") 
-names=("const_20ct_many" "extrinsic_20ct_many") 
+names=("extrinsic_20ct_many") 
 
 for name in "${names[@]}"
 

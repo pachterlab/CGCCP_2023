@@ -1,7 +1,7 @@
 # # Train scBIVI
 # 
 # This script trains and stores results for different models
-# 
+
 
 # argument parser
 import argparse
@@ -35,14 +35,18 @@ import pickle
 # scvi
 import anndata
 import scvi
-print(scvi.__version__)
 
 
 
 # import biVI scripts
 import biVI
 
-# 
+
+# reproducibility -- set random seeds
+scvi._settings.ScviConfig.seed=(8675309)
+torch.manual_seed(8675309)
+np.random.seed(8675309)
+ 
 
 # # Load in data 
 # 
@@ -98,7 +102,7 @@ def compare_setups(adata, setups, results_dict, hyperparameters, train_index = t
 
   
   for setup in setups:
-    print(setup)
+    print(setup, 'with linear decoder')
     method,n_latent,constant, = setup.split("-")
     n_latent = int(n_latent)
 
@@ -144,13 +148,13 @@ def compare_setups(adata, setups, results_dict, hyperparameters, train_index = t
 
     ## Create model
     if method == 'Extrinsic':
-        model = biVI.biVI(train_adata,mode='NBcorr',**model_args)
+        model = biVI.biVI(train_adata,mode='NBcorr',decoder_type = 'linear',**model_args)
     elif method == 'NBuncorr':
         model = biVI.biVI(train_adata,mode='NBuncorr',**model_args)
     elif method == 'Constitutive':
-        model = biVI.biVI(train_adata,mode='Poisson',**model_args)
+        model = biVI.biVI(train_adata,mode='Poisson',decoder_type = 'linear',**model_args)
     elif method == 'Bursty':
-        model = biVI.biVI(train_adata,mode='Bursty',**model_args)
+        model = biVI.biVI(train_adata,mode='Bursty',decoder_type = 'linear',**model_args)
     elif method == 'vanilla.U':
         model_args['gene_likelihood'] = 'nb'
         model = scvi.model.SCVI(train_adata,**model_args)
@@ -203,13 +207,21 @@ def compare_setups(adata, setups, results_dict, hyperparameters, train_index = t
 
     # get reconstructed parameters
     results_dict[setup]['params'] = model.get_likelihood_parameters(adata_in)
-    results_dict[setup]['norm_means'] = model.get_normalized_expression(adata_in)
+    results_dict[setup]['norm_params'] = model.get_normalized_expression(adata_in)
 
     ## Extract the embedding space for scVI
     X_out_full = model.get_latent_representation(adata_in)
 
     adata.obsm[f'X_{method}'] = X_out_full
     results_dict[setup][f'X_{n_latent}'] = X_out_full
+    
+    
+    # save model for future testing
+    
+    print('save path',f'../../results/{method}_model_{name}_linear')
+    if 'Bursty' in method:
+        model.save(f'../../results/{method}_{name}_linear_MODEL',overwrite=True)
+        print('model saved')
 
     del model
     torch.cuda.empty_cache()
@@ -224,10 +236,10 @@ def compare_setups(adata, setups, results_dict, hyperparameters, train_index = t
 
 # Can change various training hyperparameters.
 
-print('Training')
+print('Training linear models')
 
 # Hyper-parameters
-hyperparameters = { 'lr'       : 1e-3,
+hyperparameters = { 'lr'       : 1e-5,
         'max_epochs' : 400, 
         'n_hidden' : 128,
         'n_layers' : 3 }
@@ -236,12 +248,7 @@ z  = 10
 constant = 'NAS_SHAPE'
 
 setups = [
-#           f'vanilla.U-{z}-{constant}',
-#           f'vanilla.S-{z}-{constant}',
-          f'scVI-{z}-{constant}',
-#           f'vanilla.U.P-{z}-{constant}',
-#           f'vanilla.S.P-{z}-{constant}',
-#           f'vanilla.full.P-{z}-{constant}',
+#           f'scVI-{z}-{constant}',
           f'Bursty-{z}-{constant}',
           f'Constitutive-{z}-{constant}',
           f'Extrinsic-{z}-{constant}'
@@ -258,7 +265,7 @@ results_dict['test_index'] = test_index
 
 # # Save results dict
 
-results_file = open(f"../../results/{name}_results_dict.pickle", "wb")
+results_file = open(f"../../results/{name}_linear_results_dict.pickle", "wb")
 pickle.dump(results_dict, results_file)
 results_file.close()
 
