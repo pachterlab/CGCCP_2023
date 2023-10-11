@@ -1,0 +1,15 @@
+Contains scripts to generate unspliced/spliced count matrices from raw data using kb-python [1]. 
+
+
+kb_pipeline.sh  : download human reference genome and make nascent/mature index, download human PBMC 10x v3 dataset and pseudoalign to obtain unspliced/spliced count matrices
+
+Demo.ipynb : preprocess count matrices, fit biVI, and visualize inferred parameters
+
+pbmc_1k_v3/
+	counts_filtered/
+		adata.loom : loom file containing kb-python produced unspliced/spliced count matrices for human PBMC 10x v3 dataset
+
+[1] Melsted, P., Booeshaghi, A.S., et al. 
+Modular, efficient and constant-memory single-cell RNA-seq preprocessing. 
+Nat Biotechnol  39, 813–818 (2021). 
+https://doi.org/10.1038/s41587-021-00870-2
