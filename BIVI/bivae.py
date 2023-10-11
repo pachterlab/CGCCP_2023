@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 """Main module."""
+import sys
+sys.path.append('../')
+
+
 from typing import Dict, Iterable, Optional, Sequence, Union
 import anndata
 from anndata import AnnData
@@ -23,8 +27,8 @@ torch.backends.cudnn.benchmark = True
 from scvi.module._vae import VAE, LDVAE
 
 # import custom distributions
-from distributions import BivariateNegativeBinomial, log_prob_poisson, log_prob_NBcorr, log_prob_NBuncorr
-from nnNB_module import log_prob_nnNB
+from BIVI.distributions import BivariateNegativeBinomial, log_prob_poisson, log_prob_NBcorr, log_prob_NBuncorr
+from BIVI.nnNB_module import log_prob_nnNB
 
 torch.backends.cudnn.benchmark = True
 

@@ -1,3 +1,6 @@
+import sys
+sys.path.append('../')
+
 import logging
 from typing import Iterable, List, Optional, Dict, Sequence, Union, TypeVar, Tuple
 from collections.abc import Iterable as IterableClass
@@ -19,7 +22,7 @@ from scvi.model._utils import (
 )
 
 #### import the BIVAE model!
-import bivae
+from BIVI import bivae
 
 logger = logging.getLogger(__name__)
 
