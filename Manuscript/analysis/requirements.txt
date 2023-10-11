@@ -3,3 +3,4 @@ scvi-tools==0.18.0
 loompy
 leidenalg
 anndata
+torch==1.12.1+cu113
