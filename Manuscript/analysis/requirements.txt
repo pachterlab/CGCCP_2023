@@ -2,3 +2,4 @@ scanpy
 scvi-tools==0.18.0
 loompy
 leidenalg
+anndata
