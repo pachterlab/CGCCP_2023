@@ -15,17 +15,16 @@ threads=24
 # creating the nascent/mature indices --> this only has to be done once for a reference genome
 
 # download reference genome and annotations to $main_path/references/
-# mkdir -p $main_path/references
-# cd $main_path/references
-# wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/GRCh38.primary_assembly.genome.fa.gz
-# wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/gencode.v38.primary_assembly.annotation.gtf.gz
+mkdir -p $main_path/references
+cd $main_path/references
+wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/GRCh38.primary_assembly.genome.fa.gz
+wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/gencode.v38.primary_assembly.annotation.gtf.gz
 
 
 # create nascent and mature indices 
 cd $main_path
 mkdir -p $main_path/indices
 kb ref --workflow=lamanno --verbose --overwrite -i $main_path/indices/human_lamanno.idx -g $main_path/indices/human_lamanno.t2g -c1 $main_path/indices/human_lamanno.mature.t2c -c2 $main_path/indices/human_lamanno.nascent.t2c -f1 $main_path/indices/human.lamanno.mature.fa -f2 $main_path/indices/human.lamanno.nascent.fa $main_path/references/GRCh38.primary_assembly.genome.fa.gz $main_path/references/gencode.v38.primary_assembly.annotation.gtf.gz
-
 
 
 
