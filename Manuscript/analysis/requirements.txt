@@ -3,3 +3,4 @@ scvi-tools==0.18.0
 loompy
 leidenalg
 anndata
+torchmetrics==0.11.4
