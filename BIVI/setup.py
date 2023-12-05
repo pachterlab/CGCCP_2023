@@ -6,6 +6,8 @@ setup(
     name="BIVI",  # Required
     version="0.1.0",  # Required
     description="biVI software",  # Optional
+    url="https://github.com/pachterlab/CGCCP_2023/tree/main/BIVI",
+    author="Carilli, Maria, and Gorin, Gennady, and Choi, Yongin, and Chari, Tara, and Pachter, Lior",
     packages=find_packages(),  # Required
     # package_dir={'BIVI': './BIVI'},
     python_requires=">=3.7, <4",
