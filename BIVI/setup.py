@@ -1,10 +1,10 @@
 from setuptools import setup,find_packages
 
-long_description = "Protein property prediction model with PLMs for asimov."
+long_description = "Variational autoencoder for analyzing nascent and mature single cell RNA sequencing data using biophysical models."
 
 setup(
     name="BIVI",  # Required
-    version="0.0.1",  # Required
+    version="0.1.0",  # Required
     description="biVI software",  # Optional
     packages=find_packages(),  # Required
     # package_dir={'BIVI': './BIVI'},
