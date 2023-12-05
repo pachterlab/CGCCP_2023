@@ -10,6 +10,8 @@ setup(
     # package_dir={'BIVI': './BIVI'},
     python_requires=">=3.7, <4",
     install_requires=['scanpy',
+                      'numpy',
+                      'pandas',
                       'scvi-tools==0.18.0',
                       'loompy'],  # Optional
     package_data={"":['*zip']}, # Optional, required if package needs non python script files
