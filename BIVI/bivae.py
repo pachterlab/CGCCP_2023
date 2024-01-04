@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Main module."""
+"""Built atop scVI-tools https://github.com/scverse/scvi-tools/tree/7523a30c16397620cf50098fb0fa53cd32395090"""
 import sys
 sys.path.append('../')
-
 
 from typing import Dict, Iterable, Optional, Sequence, Union
 import anndata
@@ -47,7 +47,7 @@ class BIVAE(VAE):
                  use_layer_norm: Literal["encoder", "decoder", "none", "both"] = "none",
                  use_size_factor_key: bool = False,
                  custom_dist = None,
-                 THETA_IS : str ='NAS_SHAPE',
+                 THETA_IS :  Literal['NAS_SHAPE','MAT_SHAPE','B'] ='NAS_SHAPE',
                  decoder_type : Literal["non-linear","linear"] = "non-linear",
                  bias : bool = False,
                  **kwargs):
@@ -124,7 +124,7 @@ class BIVAE(VAE):
         elif decoder_type == "linear":
             self.decoder = LinearDecoderSCVI(
             n_latent,
-            n_input,
+            n_input=n_input_decoder,
             n_cat_list=cat_list,
             use_batch_norm=use_batch_norm_decoder,
             use_layer_norm=use_layer_norm_decoder,
@@ -144,7 +144,9 @@ class BIVAE(VAE):
                 -BivariateNegativeBinomial(mu=px_rate,
                                            theta=px_r,
                                            custom_dist=self.custom_dist,
-                                           THETA_IS = self.THETA_IS
+                                           THETA_IS = self.THETA_IS,
+                                           dispersion = self.dispersion,
+                                           mode = self.mode,
                                            **kwargs).log_prob(x).sum(dim=-1)
             )
 
@@ -205,8 +207,8 @@ class BIVAE(VAE):
             px_r = F.linear(one_hot(batch_index, self.n_batch), self.px_r)
         elif self.dispersion == "gene":
             px_r = self.px_r
-        elif self.dispersion == "gene-cell":
-            px_r = self.px_r
+#         elif self.dispersion == "gene-cell":
+#             px_r = self.px_r
 
         px_r = torch.exp(px_r)
 
@@ -220,7 +222,9 @@ class BIVAE(VAE):
         if self.gene_likelihood == "nb":
             px = BivariateNegativeBinomial(mu=px_rate, theta=px_r, scale=px_scale, 
                                            custom_dist = self.custom_dist,
-                                           THETA_IS = self.THETA_IS)
+                                           THETA_IS = self.THETA_IS,
+                                           dispersion = self.dispersion,
+                                           mode = self.mode)
 #         elif self.gene_likelihood == "NegativeBinomial":
 #             px = NegativeBinomial(mu=px_rate, theta=px_r, scale=px_scale)
 # #         elif self.gene_likelihood == "poisson":

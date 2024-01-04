@@ -58,6 +58,8 @@ class BivariateNegativeBinomial(Distribution):
         custom_dist = None,
         scale: Optional[torch.Tensor] = None,
         THETA_IS: str ='NAS_SHAPE',
+        dispersion: str = 'gene',
+        mode: str = 'Bursty',
         **kwargs,
     ):
 
@@ -80,7 +82,10 @@ class BivariateNegativeBinomial(Distribution):
             mu, theta = _convert_counts_logits_to_mean_disp(total_count, logits)
         else:
             mu1,mu2 = torch.chunk(mu,2,dim=-1)
-            mu1, mu2, theta = broadcast_all(mu1, mu2, theta)
+            if (dispersion == 'gene-cell') and (mode != 'NB'):
+                theta = theta[...,:int(theta.shape[-1]/2)]
+            if mode != 'NB':
+                mu1, mu2, theta = broadcast_all(mu1, mu2, theta)
 
         #### Modified for bivariate
         self.mu = mu 
