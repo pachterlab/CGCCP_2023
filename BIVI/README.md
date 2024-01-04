@@ -2,6 +2,6 @@ Modifications to scVI-tools [1] modules to allow for mechanistic integration of 
 
 
 
-Romain Lopez, Jeffrey Regier, Michael B. Cole, Michael I. Jordan & Nir Yosef (2018),
+[1] Romain Lopez, Jeffrey Regier, Michael B. Cole, Michael I. Jordan & Nir Yosef (2018),
 _Deep generative modeling for single-cell transcriptomics_,
-[Nature methods](https://www.nature.com/articles/s41592-018-0229-2).
+[Nature Methods](https://www.nature.com/articles/s41592-018-0229-2).
