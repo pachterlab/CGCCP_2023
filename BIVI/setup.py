@@ -9,7 +9,7 @@ setup(
     url="https://github.com/pachterlab/CGCCP_2023/tree/main/BIVI",
     author="Carilli, Maria, and Gorin, Gennady, and Choi, Yongin, and Chari, Tara, and Pachter, Lior",
     packages=find_packages(),  # Required
-    py_modules=['bivae','biVI','distributions','nnNB_module']
+    py_modules=['bivae','biVI','distributions','nnNB_module'],
     # package_dir={'BIVI': './BIVI'},
     python_requires=">=3.7, <4",
     install_requires=['scanpy',
