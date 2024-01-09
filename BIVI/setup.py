@@ -16,6 +16,7 @@ setup(
                       'numpy',
                       'pandas',
                       'scvi-tools==0.18.0',
+                      'torchmetrics>=0.70,<0.9.0',
                       'loompy'],  # Optional
     package_data={"":['*zip']}, # Optional, required if package needs non python script files
     # include_package_data=True,
