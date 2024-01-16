@@ -124,7 +124,7 @@ class BIVAE(VAE):
         elif decoder_type == "linear":
             self.decoder = LinearDecoderSCVI(
             n_latent,
-            n_input=n_input_decoder,
+            n_input,
             n_cat_list=cat_list,
             use_batch_norm=use_batch_norm_decoder,
             use_layer_norm=use_layer_norm_decoder,

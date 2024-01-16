@@ -21,7 +21,7 @@ import time, gc
 
 # add module paths to sys path
 import sys
-sys.path.insert(0, '../../BIVI/')
+sys.path.insert(0, '../../BIVI/BIVI')
 
 # Math
 import numpy as np
