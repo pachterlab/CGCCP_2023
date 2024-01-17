@@ -17,7 +17,7 @@ The biVI software can be installed as a standalone package using the following c
 If package dependencies cause installation issues, create a clean Conda environment and rerun the installation:
 
 
-<code> conda create --name biVI_env python==3.9 </code> 
+<code>conda create --name biVI_env python==3.9 </code> 
 
 <code>pip3 install git+https://github.com/pachterlab/CGCCP_2023.git#subdirectory=BIVI </code> 
 
