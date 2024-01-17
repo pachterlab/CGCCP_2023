@@ -10,16 +10,16 @@ This repository contains the scripts and notebooks for the preprint "Biophysical
 The biVI software can be installed as a standalone package using the following command: 
 
 
-<code> pip3 install git+https://github.com/pachterlab/CGCCP_2023.git#subdirectory=BIVI  </code>. 
+<code> pip3 install git+https://github.com/pachterlab/CGCCP_2023.git#subdirectory=BIVI </code>. 
 
 
 
 If package dependencies cause installation issues, create a clean Conda environment and rerun the installation:
 
 
-<code>conda create --name biVI_env python==3.9 </code> 
+<code> conda create --name biVI_env python==3.9 </code> 
 
-<code>pip3 install git+https://github.com/pachterlab/CGCCP_2023.git#subdirectory=BIVI </code> 
+<code> pip3 install git+https://github.com/pachterlab/CGCCP_2023.git#subdirectory=BIVI </code>.
 
 
 Installation takes one to several minutes on a standard laptop. Alternatively, _biVI_ can be run in a Google Colab notebook, an example of which is given in `Example/Demo.ipynb`.
