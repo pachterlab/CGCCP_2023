@@ -351,7 +351,7 @@ class BIVAE(VAE):
             return_dict['spliced_means'] = mu2
             return_dict['dispersions'] = dispersions
             
-            alpha,beta,gamma = get_extrinsic_params(mu1,mu2,dispersions,THETA_IS = self.module.THETA_IS)
+            alpha,beta,gamma = get_extrinsic_params(mu1,mu2,dispersions)
             
             return_dict['alpha'] = alpha
             return_dict['rel_splicing_rate'] = beta
