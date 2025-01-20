@@ -12,11 +12,7 @@ import torch
 import numpy as np
 import pandas as pd
 
-from scvi._compat import Literal
-# from scvi.core.data_loaders import ScviDataLoader
-# from scvi.core.models import ArchesMixin, BaseModelClass, RNASeqMixin, VAEMixin
-# from scvi.core.modules import VAE
-# from scvi.core.trainers import UnsupervisedTrainer
+from typing import Literal
 from scvi.model._scvi import SCVI
 from scvi.model._utils import (
     _get_batch_code_from_category,
