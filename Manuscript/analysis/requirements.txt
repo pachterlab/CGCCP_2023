@@ -1,6 +1,5 @@
 scanpy
-scvi-tools==0.18.0
+scvi-tools==1.2.2
 loompy
 leidenalg
 anndata
-torchmetrics==0.11.4
