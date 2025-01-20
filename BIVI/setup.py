@@ -15,7 +15,7 @@ setup(
     install_requires=['scanpy',
                       'numpy',
                       'pandas',
-                      'scvi-tools'
+                      'scvi-tools',
                       # 'scvi-tools==0.18.0',
                       # 'torchmetrics>=0.7.0,<0.9.0',
                       'loompy'],  # Optional
